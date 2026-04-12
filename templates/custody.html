@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Custody Timeline</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+
+    <h2>Custody Timeline - EV-{{ "%03d"|format(evidence_id) }}</h2>
+
+    {% if logs %}
+        <ul>
+        {% for log in logs %}
+            <li>
+                <strong>{{ log["timestamp"] }}</strong><br>
+
+                {% if log["action"] == "uploaded" %}
+                    Uploaded by <strong>{{ log["to_user"] }}</strong>
+
+                {% elif log["action"] == "transferred" %}
+                    Transferred from <strong>{{ log["from_user"] }}</strong>
+                    to <strong>{{ log["to_user"] }}</strong>
+
+                {% endif %}
+            </li>
+            <br>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No custody records found.</p>
+    {% endif %}
+
+    <a href="/dashboard">Back to Dashboard</a>
+
+</div>
+
+</body>
+</html>

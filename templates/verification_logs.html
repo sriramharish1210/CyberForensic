@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verification Logs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+
+    <h2>Verification Logs</h2>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Evidence ID</th>
+            <th>Verified By</th>
+            <th>Status</th>
+            <th>Time</th>
+        </tr>
+
+        {% for log in logs %}
+        <tr>
+            <td>{{ log["id"] }}</td>
+            <td>EV-{{ "%03d"|format(log["evidence_id"]) }}</td>
+            <td>{{ log["username"] }}</td>
+            <td>
+                {% if log["result"] == "verified" %}
+                    <span style="color: green;">Verified</span>
+                {% else %}
+                    <span style="color: red;">Tampered</span>
+                {% endif %}
+            </td>
+            <td>{{ log["timestamp"] }}</td>
+        </tr>
+        {% endfor %}
+
+    </table>
+
+    <br>
+    <a href="/dashboard">Back to Dashboard</a>
+
+</div>
+
+</body>
+</html>

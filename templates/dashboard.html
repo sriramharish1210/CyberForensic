@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="topbar">
+    <h3>Cyber Forensic System</h3>
+    <div>
+        Logged in as: <strong>{{ role }}</strong> |
+        <a href="/logout">Logout</a>
+    </div>
+</div>
+
+<div class="container">
+
+    <h2>Dashboard</h2>
+
+    {% if role == "admin" %}
+        <h3>Admin Panel</h3>
+        <p>Manage users and evidence.</p>
+
+    {% elif role == "investigator" %}
+        <h3>Investigator Panel</h3>
+        <a href="/upload"><button>Upload Evidence</button></a>
+
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Actions</th>
+            </tr>
+
+        {% if evidences %}
+        {% for evidence in evidences %}
+            <tr>
+                <td>EV-{{ "%03d"|format(evidence["id"]) }}</td>
+                <td>
+                    <a href="/transfer/{{ evidence['id'] }}">Transfer</a>
+                    <a href="/verify/{{ evidence['id'] }}">Verify</a>
+                    <a href="/custody/{{ evidence['id'] }}">History</a>
+                    <a href="/verification_logs">Verification Logs</a>
+                    <a href="/generate_report/{{ evidence['id'] }}">Download Report</a>
+                </td>
+            </tr>
+        {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="2">No evidence found</td>
+            </tr>
+        {% endif %}
+        </table>
+
+    {% elif role == "auditor" %}
+        <h3>Auditor Panel</h3>
+        <p>View evidence logs and verify integrity.</p>
+    {% endif %}
+
+</div>
+
+</body>
+</html>

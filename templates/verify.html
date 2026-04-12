@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verify Evidence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+
+    <h2>Evidence Verification Report</h2>
+
+    <p><strong>Evidence ID:</strong> {{ evidence_id }}</p>
+
+    <hr>
+
+    {% if status == "verified" %}
+        <p class="badge verified">Integrity Verified</p>
+        <p>The file has not been altered.</p>
+
+    {% elif status == "tampered" %}
+        <p class="badge tampered">Integrity Compromised</p>
+        <p>The file appears to have been modified.</p>
+
+    {% elif status == "missing" %}
+        <p class="badge tampered">File Missing</p>
+        <p>The file is not found in storage.</p>
+
+    {% elif status == "not_found" %}
+        <p class="badge tampered">Evidence Not Found</p>
+        <p>No evidence record exists for this ID.</p>
+    {% endif %}
+
+    <br><br>
+
+    <a href="/dashboard">Back to Dashboard</a>
+
+</div>
+
+</body>
+</html>
