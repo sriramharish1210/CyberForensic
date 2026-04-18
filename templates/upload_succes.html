@@ -1,12 +1,165 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Upload Successful — CyberForensic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #080c10; --bg2: #0d1117; --bg3: #111820;
+            --panel: #131c26; --border: #1e2e3e; --border2: #253647;
+            --accent: #00d4ff; --accent2: #0077ff;
+            --success: #00e5a0; --danger: #ff3b5c;
+            --text: #e2eaf3; --muted: #6a8099;
+            --mono: 'Space Mono', monospace; --sans: 'Syne', sans-serif;
+        }
+        html, body {
+            background: var(--bg); color: var(--text); font-family: var(--sans);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background-image: linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none;
+        }
+        body::after {
+            content: ''; position: fixed;
+            bottom: -200px; left: 50%; transform: translateX(-50%);
+            width: 700px; height: 400px;
+            background: radial-gradient(ellipse, rgba(0,229,160,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
 
-{% block content %}
-<div class="card shadow-lg p-4 bg-dark text-light">
-    <h3 class="text-success">Evidence Uploaded Successfully ✅</h3>
-    <hr>
-    <p><strong>Evidence ID:</strong> EV-{{ "%03d"|format(evidence_id) }}</p>
-    <p><strong>File Name:</strong> {{ filename }}</p>
+        .wrap {
+            position: relative; z-index: 1;
+            width: 100%; max-width: 480px;
+            padding: 1.5rem;
+            animation: fadeUp 0.5s ease both;
+        }
 
-    <a href="/dashboard" class="btn btn-primary mt-3">Back to Dashboard</a>
+        /* success ring animation */
+        .success-ring {
+            width: 80px; height: 80px;
+            margin: 0 auto 1.75rem;
+            position: relative;
+        }
+        .success-ring svg { width: 80px; height: 80px; }
+        .ring-circle {
+            fill: none; stroke: var(--success);
+            stroke-width: 2; stroke-dasharray: 220;
+            stroke-dashoffset: 220;
+            animation: drawRing 0.7s 0.2s ease forwards;
+            transform-origin: center;
+            transform: rotate(-90deg);
+        }
+        .check-path {
+            fill: none; stroke: var(--success);
+            stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+            stroke-dasharray: 50; stroke-dashoffset: 50;
+            animation: drawCheck 0.4s 0.8s ease forwards;
+        }
+        @keyframes drawRing { to { stroke-dashoffset: 0; } }
+        @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+
+        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+        .card-head { padding: 2rem 1.75rem 1.5rem; text-align: center; border-bottom: 1px solid var(--border); background: var(--bg3); }
+        .status-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--success); text-transform: uppercase; margin-bottom: 8px; }
+        .card-title { font-size: 1.4rem; font-weight: 800; }
+        .card-sub { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+        /* detail rows */
+        .detail-list { padding: 1.5rem 1.75rem; display: flex; flex-direction: column; gap: 0; }
+        .detail-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-key { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+        .detail-val { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); text-align: right; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .detail-val.accent { color: var(--accent); }
+        .detail-val.success { color: var(--success); }
+
+        /* hash box */
+        .hash-box {
+            margin: 0 1.75rem 1.5rem;
+            background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+            padding: 12px 14px;
+        }
+        .hash-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+        .hash-val { font-family: var(--mono); font-size: 11px; color: var(--success); word-break: break-all; line-height: 1.5; }
+
+        .card-foot { padding: 1.25rem 1.75rem; border-top: 1px solid var(--border); background: var(--bg3); }
+        .dashboard-btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            text-decoration: none; width: 100%;
+            background: linear-gradient(135deg, var(--accent2), var(--accent));
+            color: #000; font-family: var(--mono); font-size: 12px; font-weight: 700;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            padding: 13px; border-radius: 8px;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        .dashboard-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+        .dashboard-btn svg { width: 14px; height: 14px; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="wrap">
+
+    <div class="success-ring">
+        <svg viewBox="0 0 80 80">
+            <circle class="ring-circle" cx="40" cy="40" r="35"/>
+            <polyline class="check-path" points="24,40 35,51 56,29"/>
+        </svg>
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <div class="status-label">// Upload Complete</div>
+            <h1 class="card-title">Evidence Secured</h1>
+            <p class="card-sub">The file has been ingested, hashed, and logged in the forensic chain of custody.</p>
+        </div>
+
+        <div class="detail-list">
+            <div class="detail-row">
+                <span class="detail-key">Evidence ID</span>
+                <span class="detail-val accent">EV-{{ "%03d"|format(evidence_id) }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">File Name</span>
+                <span class="detail-val">{{ filename }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">Chain Status</span>
+                <span class="detail-val success">Intact</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">Integrity</span>
+                <span class="detail-val success">Hash Recorded</span>
+            </div>
+        </div>
+
+        <div class="card-foot">
+            <a href="/dashboard" class="dashboard-btn">
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <rect x="2" y="2" width="4" height="4" rx="0.75"/>
+                    <rect x="8" y="2" width="4" height="4" rx="0.75"/>
+                    <rect x="2" y="8" width="4" height="4" rx="0.75"/>
+                    <rect x="8" y="8" width="4" height="4" rx="0.75"/>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+
 </div>
-{% endblock %}
+
+</body>
+</html>

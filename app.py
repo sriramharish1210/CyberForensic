@@ -273,8 +273,8 @@ def verify(evidence_id):
     )
 
 # ---------------- VERIFICATION LOGS ----------------
-@app.route("/verification_logs")
-def verification_logs():
+@app.route("/verification_logs/<int:evidence_id>")
+def verification_logs(evidence_id):
     if "user_id" not in session:
         return redirect("/login")
 
@@ -286,8 +286,9 @@ def verification_logs():
         SELECT v.id, v.evidence_id, v.result, v.timestamp, u.username
         FROM verification_log v
         JOIN users u ON v.verified_by = u.id
+        WHERE v.evidence_id = ?
         ORDER BY v.timestamp DESC
-        """)
+        """, (evidence_id,))
 
         logs = cur.fetchall()
 
@@ -296,7 +297,11 @@ def verification_logs():
 
     conn.close()
 
-    return render_template("verification_logs.html", logs=logs)
+    return render_template(
+        "verification_logs.html",
+        logs=logs,
+        evidence_id=evidence_id
+    )
 
 # ---------------- COC ----------------
 @app.route("/custody/<int:evidence_id>")
@@ -378,6 +383,119 @@ def generate_report(evidence_id):
     doc.build(content)
 
     return send_file(filename, as_attachment=True)
+
+#ADMIN PANEL
+# ----------------MANAGE USERS ----------------
+@app.route("/manage_users")
+def manage_users():
+    if "user_id" not in session or session.get("role") != "admin":
+        return "Access Denied"
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id, username, role FROM users")
+    users = cur.fetchall()
+
+    conn.close()
+
+    return render_template("manage_users.html", users=users)
+
+# ---------------- EVIDENCE CONTROL ----------------
+@app.route("/evidence_control")
+def evidence_control():
+    if "user_id" not in session or session.get("role") != "admin":
+        return "Access Denied"
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM evidence")
+    evidences = cur.fetchall()
+
+    conn.close()
+
+    return render_template("evidence_control.html", evidences=evidences)
+
+# ---------------- SYSTEM LOGS ----------------
+@app.route("/system_logs")
+def system_logs():
+    if "user_id" not in session or session.get("role") != "admin":
+        return "Access Denied"
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT * FROM verification_log
+        ORDER BY timestamp DESC
+    """)
+
+    logs = cur.fetchall()
+    conn.close()
+
+    return render_template("system_logs.html", logs=logs)
+
+#AUDT PANEL
+# ---------------- VERIFICATION LOGS ----------------
+@app.route("/all_verification_logs")
+def all_verification_logs():
+    if "user_id" not in session or session.get("role") != "auditor":
+        return "Access Denied"
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT v.id, v.evidence_id, v.result, v.timestamp, u.username
+        FROM verification_log v
+        JOIN users u ON v.verified_by = u.id
+        ORDER BY v.timestamp DESC
+    """)
+
+    logs = cur.fetchall()
+    conn.close()
+
+    return render_template("verification_logs.html", logs=logs)
+
+# ---------------- INTEGRITY CHECKS ----------------
+@app.route("/integrity_checks")
+def integrity_checks():
+    if session.get("role") != "auditor":
+        return "Access Denied"
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT evidence_id, result, timestamp
+        FROM verification_log
+        ORDER BY timestamp DESC
+    """)
+
+    logs = cur.fetchall()
+    conn.close()
+
+    return render_template("integrity_checks.html", logs=logs)
+
+# ---------------- TIMELINE VIEW ----------------
+@app.route("/timeline_view")
+def timeline_view():
+    if session.get("role") != "auditor":
+        return "Access Denied"
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT * FROM custody_log
+        ORDER BY timestamp DESC
+    """)
+
+    logs = cur.fetchall()
+    conn.close()
+
+    return render_template("timeline.html", logs=logs)
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")

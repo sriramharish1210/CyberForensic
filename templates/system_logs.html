@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>System Logs — CyberForensic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg:#080c10;--bg2:#0d1117;--bg3:#111820;--panel:#131c26;
+            --border:#1e2e3e;--border2:#253647;--accent:#00d4ff;--accent2:#0077ff;
+            --warn:#ff6b35;--success:#00e5a0;--danger:#ff3b5c;--purple:#b983ff;
+            --text:#e2eaf3;--muted:#6a8099;
+            --mono:'Space Mono',monospace;--sans:'Syne',sans-serif;
+        }
+        html,body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+        body>*{position:relative;z-index:1;}
+        .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:64px;background:rgba(8,12,16,0.92);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;}
+        .topbar-brand{display:flex;align-items:center;gap:12px;}
+        .brand-icon{width:36px;height:36px;border:1.5px solid var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+        .brand-name{font-size:15px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;}
+        .brand-name span{color:var(--accent);}
+        .back-btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:0.08em;padding:7px 16px;border:1px solid var(--border);border-radius:6px;transition:all 0.2s;}
+        .back-btn:hover{color:var(--accent);border-color:var(--accent);background:rgba(0,212,255,0.05);}
+        .back-btn svg{width:12px;height:12px;}
+        .container{max-width:1100px;margin:0 auto;padding:3rem 2rem;}
+        .page-header{margin-bottom:2.5rem;animation:fadeUp 0.5s ease both;}
+        .page-label{font-family:var(--mono);font-size:11px;letter-spacing:0.2em;color:var(--purple);text-transform:uppercase;margin-bottom:10px;}
+        .page-title{font-size:2rem;font-weight:800;}
+        .page-title span{color:transparent;-webkit-text-stroke:1px var(--purple);}
+        .page-sub{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.7;}
+        .stat-strip{display:flex;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:2.5rem;animation:fadeUp 0.5s 0.1s ease both;}
+        .stat-item{flex:1;background:var(--panel);padding:1rem 1.25rem;}
+        .stat-lbl{font-family:var(--mono);font-size:10px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;}
+        .stat-val{font-family:var(--mono);font-size:1.3rem;font-weight:700;}
+        .panel-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative;animation:fadeUp 0.5s 0.2s ease both;}
+        .panel-card::after{content:'';position:absolute;left:0;top:-2px;width:100%;height:2px;background:linear-gradient(90deg,transparent,rgba(185,131,255,0.5),transparent);animation:scanline 3s 0.3s linear infinite;}
+        @keyframes scanline{0%{top:-2px;opacity:0;}5%{opacity:1;}95%{opacity:1;}100%{top:102%;opacity:0;}}
+        .panel-head{display:flex;align-items:center;gap:10px;padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);background:var(--bg3);}
+        .panel-head-icon{width:30px;height:30px;background:rgba(185,131,255,0.1);border:1px solid rgba(185,131,255,0.25);border-radius:6px;display:flex;align-items:center;justify-content:center;}
+        .panel-head-icon svg{width:14px;height:14px;}
+        .panel-title{font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;}
+
+        /* Log stream */
+        .log-stream{padding:0.5rem 0;}
+        .log-row{display:flex;align-items:center;gap:1rem;padding:12px 1.5rem;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;transition:background 0.15s;flex-wrap:wrap;}
+        .log-row:last-child{border-bottom:none;}
+        .log-row:hover{background:rgba(185,131,255,0.03);}
+        .log-evid{color:var(--accent);font-weight:700;min-width:70px;}
+        .log-result-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:3px 8px;border-radius:4px;border:1px solid;white-space:nowrap;}
+        .log-result-badge.verified{color:var(--success);border-color:rgba(0,229,160,0.3);background:rgba(0,229,160,0.07);}
+        .log-result-badge.tampered{color:var(--danger);border-color:rgba(255,59,92,0.3);background:rgba(255,59,92,0.07);}
+        .log-result-badge svg{width:9px;height:9px;}
+        .log-time{color:var(--muted);font-size:11px;margin-left:auto;}
+
+        .empty-state{padding:4rem 2rem;text-align:center;}
+        .empty-icon{width:56px;height:56px;margin:0 auto 1rem;background:var(--bg3);border:1px solid var(--border2);border-radius:12px;display:flex;align-items:center;justify-content:center;}
+        .empty-icon svg{width:24px;height:24px;color:var(--muted);}
+        .empty-title{font-size:15px;font-weight:700;margin-bottom:6px;}
+        .empty-sub{font-size:13px;color:var(--muted);}
+        .footer-nav{margin-top:2rem;animation:fadeUp 0.5s 0.35s ease both;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+        @media(max-width:640px){.container{padding:2rem 1rem;}.topbar{padding:0 1rem;}.brand-name{display:none;}.log-time{margin-left:0;}}
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-brand">
+        <div class="brand-icon">
+            <svg viewBox="0 0 18 18" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                <path d="M9 2L15 5.5V12.5L9 16L3 12.5V5.5L9 2Z"/>
+                <path d="M9 6V12M6.5 7.5L11.5 10.5"/>
+            </svg>
+        </div>
+        <span class="brand-name">Cyber<span>Forensic</span></span>
+    </div>
+    <a href="/dashboard" class="back-btn">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7.5 2L3.5 6l4 4"/></svg>
+        Back to Dashboard
+    </a>
+</div>
+
+<div class="container">
+
+    <div class="page-header">
+        <div class="page-label">// Admin — System Logs</div>
+        <h1 class="page-title">System <span>Logs</span></h1>
+        <p class="page-sub">Complete record of all verification events across every evidence item in the system. Use this to audit integrity checks and detect any tampered files.</p>
+    </div>
+
+    {% set total = logs|length if logs else 0 %}
+    {% set verified_count = logs|selectattr(2,'equalto','verified')|list|length if logs else 0 %}
+    {% set tampered_count = total - verified_count %}
+
+    <div class="stat-strip">
+        <div class="stat-item"><div class="stat-lbl">Total Events</div><div class="stat-val" style="color:var(--purple);">{{ total }}</div></div>
+        <div class="stat-item"><div class="stat-lbl">Verified</div><div class="stat-val" style="color:var(--success);">{{ verified_count }}</div></div>
+        <div class="stat-item"><div class="stat-lbl">Tampered</div><div class="stat-val" style="color:var(--danger);">{{ tampered_count }}</div></div>
+        <div class="stat-item">
+            <div class="stat-lbl">Integrity Rate</div>
+            <div class="stat-val" style="color:var(--success);font-size:1rem;padding-top:5px;">
+                {% if total > 0 %}{{ ((verified_count / total) * 100)|round|int }}%{% else %}N/A{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="panel-card">
+        <div class="panel-head">
+            <div class="panel-head-icon">
+                <svg viewBox="0 0 14 14" fill="none" stroke="#b983ff" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M2 4h10M2 7h7M2 10h5"/>
+                </svg>
+            </div>
+            <span class="panel-title">Verification Event Stream</span>
+        </div>
+
+        {% if logs %}
+        <div class="log-stream">
+            {% for log in logs %}
+            <div class="log-row">
+                <span class="log-evid">EV-{{ "%03d"|format(log[1]) }}</span>
+                {% if log[2] == "verified" %}
+                <span class="log-result-badge verified">
+                    <svg viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 4.5l2 2 4-4"/></svg>
+                    Verified
+                </span>
+                {% else %}
+                <span class="log-result-badge tampered">
+                    <svg viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2l5 5M7 2l-5 5"/></svg>
+                    Tampered
+                </span>
+                {% endif %}
+                <span class="log-time">{{ log[3] }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M4 6h16M4 10h16M4 14h10"/>
+                </svg>
+            </div>
+            <div class="empty-title">No system events recorded</div>
+            <div class="empty-sub">Verification checks will appear here once investigators run them.</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="footer-nav">
+        <a href="/dashboard" class="back-btn">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7.5 2L3.5 6l4 4"/></svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+</div>
+</body>
+</html>

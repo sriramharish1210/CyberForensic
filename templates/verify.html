@@ -1,41 +1,275 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Verify Evidence</title>
+    <title>Verify Evidence — CyberForensic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #080c10; --bg2: #0d1117; --bg3: #111820;
+            --panel: #131c26; --border: #1e2e3e; --border2: #253647;
+            --accent: #00d4ff; --accent2: #0077ff;
+            --warn: #ff6b35; --success: #00e5a0; --danger: #ff3b5c; --purple: #b983ff;
+            --text: #e2eaf3; --muted: #6a8099;
+            --mono: 'Space Mono', monospace; --sans: 'Syne', sans-serif;
+        }
+        html, body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; overflow-x: hidden; }
+        body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+        body > * { position: relative; z-index: 1; }
+
+        .topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 64px; background: rgba(8,12,16,0.92); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 100; }
+        .topbar-brand { display: flex; align-items: center; gap: 12px; }
+        .brand-icon { width: 36px; height: 36px; border: 1.5px solid var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        .brand-name { font-size: 15px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+        .brand-name span { color: var(--accent); }
+        .back-btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--muted); font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; padding: 7px 16px; border: 1px solid var(--border); border-radius: 6px; transition: all 0.2s; }
+        .back-btn:hover { color: var(--accent); border-color: var(--accent); background: rgba(0,212,255,0.05); }
+        .back-btn svg { width: 12px; height: 12px; }
+
+        .container { max-width: 600px; margin: 0 auto; padding: 3rem 2rem; }
+
+        .page-header { margin-bottom: 2.5rem; animation: fadeUp 0.5s ease both; }
+        .page-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; }
+        .page-title { font-size: 2rem; font-weight: 800; }
+        .page-title span { color: transparent; -webkit-text-stroke: 1px var(--accent); }
+        .page-sub { margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+        /* evidence tag */
+        .ev-tag { display: inline-flex; align-items: center; gap: 8px; background: rgba(0,212,255,0.07); border: 1px solid rgba(0,212,255,0.2); border-radius: 6px; padding: 6px 14px; font-family: var(--mono); font-size: 12px; color: var(--accent); font-weight: 700; margin-bottom: 2rem; animation: fadeUp 0.5s 0.1s ease both; }
+        .ev-tag svg { width: 13px; height: 13px; }
+
+        /* STATUS CARD */
+        .status-card { border-radius: 14px; overflow: hidden; border: 1px solid; margin-bottom: 2rem; animation: fadeUp 0.5s 0.2s ease both; position: relative; }
+
+        .status-card.verified { border-color: rgba(0,229,160,0.3); background: var(--panel); }
+        .status-card.tampered { border-color: rgba(255,59,92,0.3); background: var(--panel); }
+        .status-card.missing  { border-color: rgba(255,107,53,0.3); background: var(--panel); }
+        .status-card.not_found { border-color: rgba(255,107,53,0.3); background: var(--panel); }
+
+        .status-head {
+            padding: 2rem 1.75rem;
+            text-align: center;
+            border-bottom: 1px solid;
+        }
+        .status-card.verified .status-head { background: rgba(0,229,160,0.05); border-color: rgba(0,229,160,0.15); }
+        .status-card.tampered .status-head { background: rgba(255,59,92,0.05); border-color: rgba(255,59,92,0.15); }
+        .status-card.missing  .status-head { background: rgba(255,107,53,0.05); border-color: rgba(255,107,53,0.15); }
+        .status-card.not_found .status-head { background: rgba(255,107,53,0.05); border-color: rgba(255,107,53,0.15); }
+
+        /* big icon */
+        .status-icon { width: 64px; height: 64px; margin: 0 auto 1.25rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid; }
+        .status-card.verified .status-icon { border-color: rgba(0,229,160,0.4); background: rgba(0,229,160,0.08); }
+        .status-card.tampered .status-icon { border-color: rgba(255,59,92,0.4); background: rgba(255,59,92,0.08); }
+        .status-card.missing  .status-icon { border-color: rgba(255,107,53,0.4); background: rgba(255,107,53,0.08); }
+        .status-card.not_found .status-icon { border-color: rgba(255,107,53,0.4); background: rgba(255,107,53,0.08); }
+        .status-icon svg { width: 28px; height: 28px; }
+
+        .status-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 6px; }
+        .status-card.verified .status-title { color: var(--success); }
+        .status-card.tampered .status-title { color: var(--danger); }
+        .status-card.missing  .status-title { color: var(--warn); }
+        .status-card.not_found .status-title { color: var(--warn); }
+
+        .status-sub { font-size: 13px; color: var(--muted); line-height: 1.6; max-width: 380px; margin: 0 auto; }
+
+        /* detail rows inside card */
+        .status-body { padding: 1.25rem 1.75rem; }
+        .detail-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-key { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+        .detail-val { font-family: var(--mono); font-size: 12px; font-weight: 700; }
+        .detail-val.verified { color: var(--success); }
+        .detail-val.tampered, .detail-val.missing, .detail-val.not_found { color: var(--danger); }
+        .detail-val.accent { color: var(--accent); }
+
+        /* what this means block */
+        .info-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem; margin-top: 1.5rem; animation: fadeUp 0.5s 0.3s ease both; }
+        .info-block-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+        .info-block-text { font-size: 13px; color: var(--text); line-height: 1.7; }
+
+        .footer-nav { margin-top: 2rem; animation: fadeUp 0.5s 0.4s ease both; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 640px) { .container { padding: 2rem 1rem; } .topbar { padding: 0 1rem; } .brand-name { display: none; } }
+    </style>
 </head>
 <body>
 
-<div class="container">
-
-    <h2>Evidence Verification Report</h2>
-
-    <p><strong>Evidence ID:</strong> {{ evidence_id }}</p>
-
-    <hr>
-
-    {% if status == "verified" %}
-        <p class="badge verified">Integrity Verified</p>
-        <p>The file has not been altered.</p>
-
-    {% elif status == "tampered" %}
-        <p class="badge tampered">Integrity Compromised</p>
-        <p>The file appears to have been modified.</p>
-
-    {% elif status == "missing" %}
-        <p class="badge tampered">File Missing</p>
-        <p>The file is not found in storage.</p>
-
-    {% elif status == "not_found" %}
-        <p class="badge tampered">Evidence Not Found</p>
-        <p>No evidence record exists for this ID.</p>
-    {% endif %}
-
-    <br><br>
-
-    <a href="/dashboard">Back to Dashboard</a>
-
+<div class="topbar">
+    <div class="topbar-brand">
+        <div class="brand-icon">
+            <svg viewBox="0 0 18 18" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                <path d="M9 2L15 5.5V12.5L9 16L3 12.5V5.5L9 2Z"/>
+                <path d="M9 6V12M6.5 7.5L11.5 10.5"/>
+            </svg>
+        </div>
+        <span class="brand-name">Cyber<span>Forensic</span></span>
+    </div>
+    <a href="/dashboard" class="back-btn">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7.5 2L3.5 6l4 4"/></svg>
+        Back to Dashboard
+    </a>
 </div>
 
+<div class="container">
+
+    <div class="page-header">
+        <div class="page-label">// Integrity Check</div>
+        <h1 class="page-title">Verification <span>Report</span></h1>
+        <p class="page-sub">SHA-256 hash comparison result for the requested evidence item. The stored hash is compared against the current file state.</p>
+    </div>
+
+    <div class="ev-tag">
+        <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <rect x="2" y="2" width="9" height="9" rx="1.5"/>
+            <path d="M4.5 6.5h4M6.5 4.5v4"/>
+        </svg>
+        Evidence ID: {{ evidence_id }}
+    </div>
+
+    <!-- ── VERIFIED ── -->
+    {% if status == "verified" %}
+    <div class="status-card verified">
+        <div class="status-head">
+            <div class="status-icon">
+                <svg viewBox="0 0 28 28" fill="none" stroke="#00e5a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 3L22 7V14C22 18.5 18.5 22 14 24C9.5 22 6 18.5 6 14V7L14 3Z"/>
+                    <path d="M9.5 14l3 3 6-6"/>
+                </svg>
+            </div>
+            <div class="status-title">Integrity Verified</div>
+            <p class="status-sub">The file hash matches the original baseline. No tampering has been detected.</p>
+        </div>
+        <div class="status-body">
+            <div class="detail-row">
+                <span class="detail-key">Hash Match</span>
+                <span class="detail-val verified">Confirmed</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">File State</span>
+                <span class="detail-val verified">Unmodified</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">Result</span>
+                <span class="detail-val accent">PASS</span>
+            </div>
+        </div>
+    </div>
+    <div class="info-block">
+        <div class="info-block-label">What this means</div>
+        <div class="info-block-text">The SHA-256 hash of the current file matches the hash recorded at the time of upload. The evidence file is forensically intact and suitable for use in legal or investigative proceedings.</div>
+    </div>
+
+    <!-- ── TAMPERED ── -->
+    {% elif status == "tampered" %}
+    <div class="status-card tampered">
+        <div class="status-head">
+            <div class="status-icon">
+                <svg viewBox="0 0 28 28" fill="none" stroke="#ff3b5c" stroke-width="2" stroke-linecap="round">
+                    <path d="M14 3L22 7V14C22 18.5 18.5 22 14 24C9.5 22 6 18.5 6 14V7L14 3Z"/>
+                    <path d="M10 10l8 8M18 10l-8 8"/>
+                </svg>
+            </div>
+            <div class="status-title">Integrity Compromised</div>
+            <p class="status-sub">The file hash does not match the stored baseline. The file may have been altered after upload.</p>
+        </div>
+        <div class="status-body">
+            <div class="detail-row">
+                <span class="detail-key">Hash Match</span>
+                <span class="detail-val tampered">Failed</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">File State</span>
+                <span class="detail-val tampered">Modified</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">Result</span>
+                <span class="detail-val tampered">FAIL</span>
+            </div>
+        </div>
+    </div>
+    <div class="info-block">
+        <div class="info-block-label">What this means</div>
+        <div class="info-block-text">The current file hash differs from the one recorded at upload. This indicates the file content has been modified since it was first submitted. This evidence should not be used without further investigation.</div>
+    </div>
+
+    <!-- ── MISSING ── -->
+    {% elif status == "missing" %}
+    <div class="status-card missing">
+        <div class="status-head">
+            <div class="status-icon">
+                <svg viewBox="0 0 28 28" fill="none" stroke="#ff6b35" stroke-width="2" stroke-linecap="round">
+                    <circle cx="14" cy="14" r="9"/>
+                    <path d="M14 10v4M14 17v1"/>
+                </svg>
+            </div>
+            <div class="status-title">File Missing</div>
+            <p class="status-sub">The physical file could not be located in storage. The record exists but the file is absent.</p>
+        </div>
+        <div class="status-body">
+            <div class="detail-row">
+                <span class="detail-key">File Located</span>
+                <span class="detail-val missing">No</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">Record Status</span>
+                <span class="detail-val accent">Found</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">Result</span>
+                <span class="detail-val missing">ERROR</span>
+            </div>
+        </div>
+    </div>
+    <div class="info-block">
+        <div class="info-block-label">What this means</div>
+        <div class="info-block-text">A database record exists for this evidence ID, but the actual file cannot be found in the storage directory. This may indicate accidental deletion or a storage migration issue. Contact your system administrator.</div>
+    </div>
+
+    <!-- ── NOT FOUND ── -->
+    {% elif status == "not_found" %}
+    <div class="status-card not_found">
+        <div class="status-head">
+            <div class="status-icon">
+                <svg viewBox="0 0 28 28" fill="none" stroke="#ff6b35" stroke-width="2" stroke-linecap="round">
+                    <circle cx="13" cy="13" r="8"/>
+                    <path d="M19 19l4 4"/>
+                    <path d="M10 10l6 6M16 10l-6 6"/>
+                </svg>
+            </div>
+            <div class="status-title">Evidence Not Found</div>
+            <p class="status-sub">No evidence record exists in the system for this ID.</p>
+        </div>
+        <div class="status-body">
+            <div class="detail-row">
+                <span class="detail-key">Record Found</span>
+                <span class="detail-val not_found">No</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">File Found</span>
+                <span class="detail-val not_found">No</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">Result</span>
+                <span class="detail-val not_found">NOT FOUND</span>
+            </div>
+        </div>
+    </div>
+    <div class="info-block">
+        <div class="info-block-label">What this means</div>
+        <div class="info-block-text">There is no database entry or file associated with this evidence ID. Please verify the ID is correct, or check if the evidence was removed from the system.</div>
+    </div>
+    {% endif %}
+
+    <div class="footer-nav">
+        <a href="/dashboard" class="back-btn">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7.5 2L3.5 6l4 4"/></svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+</div>
 </body>
 </html>

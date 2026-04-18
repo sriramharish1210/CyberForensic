@@ -1,63 +1,921 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Dashboard</title>
+    <title>CyberForensic Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:       #080c10;
+            --bg2:      #0d1117;
+            --bg3:      #111820;
+            --panel:    #131c26;
+            --border:   #1e2e3e;
+            --border2:  #253647;
+            --accent:   #00d4ff;
+            --accent2:  #0077ff;
+            --warn:     #ff6b35;
+            --success:  #00e5a0;
+            --danger:   #ff3b5c;
+            --text:     #e2eaf3;
+            --muted:    #6a8099;
+            --mono:     'Space Mono', monospace;
+            --sans:     'Syne', sans-serif;
+        }
+
+        html, body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── GRID BACKGROUND ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body > * { position: relative; z-index: 1; }
+
+        /* ── TOPBAR ── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            height: 64px;
+            background: rgba(8,12,16,0.92);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            border: 1.5px solid var(--accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .brand-icon svg { width: 18px; height: 18px; }
+
+        .brand-name {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        .brand-name span { color: var(--accent); }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .topbar-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: rgba(0,212,255,0.12);
+            border: 1.5px solid rgba(0,212,255,0.35);
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--mono);
+            font-size: 11px; font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .user-name {
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: 0.04em;
+        }
+
+        .role-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--muted);
+            letter-spacing: 0.06em;
+        }
+
+        .role-badge strong {
+            color: var(--accent);
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .role-dot {
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 5px var(--success);
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--muted);
+            text-decoration: none;
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            padding: 7px 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            color: var(--danger);
+            border-color: var(--danger);
+            background: rgba(255,59,92,0.07);
+        }
+
+        /* ── LAYOUT ── */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        /* ── PAGE HEADER ── */
+        .page-header {
+            margin-bottom: 3rem;
+            animation: fadeUp 0.5s ease both;
+        }
+
+        .page-label {
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .page-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1.15;
+            color: var(--text);
+        }
+
+        .page-title span {
+            color: transparent;
+            -webkit-text-stroke: 1px var(--accent);
+        }
+
+        /* ── STAT CARDS ── */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 2.5rem;
+            animation: fadeUp 0.5s 0.1s ease both;
+        }
+
+        .stat-card {
+            background: var(--panel);
+            padding: 1.5rem 1.25rem;
+        }
+
+        .stat-label {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            color: var(--muted);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-family: var(--mono);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1;
+        }
+
+        .stat-value.accent { color: var(--accent); }
+        .stat-value.success { color: var(--success); }
+        .stat-value.warn { color: var(--warn); }
+
+        /* ── PANEL CARD ── */
+        .panel-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            animation: fadeUp 0.5s 0.2s ease both;
+        }
+
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.2rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg3);
+        }
+
+        .panel-head-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-head-icon {
+            width: 30px;
+            height: 30px;
+            background: rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.25);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .panel-head-icon svg { width: 14px; height: 14px; }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        /* ── UPLOAD BUTTON ── */
+        .upload-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            background: linear-gradient(135deg, var(--accent2), var(--accent));
+            color: #000;
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 9px 20px;
+            border-radius: 6px;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+
+        .upload-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+        .upload-btn:active { transform: translateY(0); }
+
+        .upload-btn svg { width: 13px; height: 13px; }
+
+        /* ── EVIDENCE TABLE ── */
+        .evidence-table-wrap {
+            overflow-x: auto;
+        }
+
+        .evidence-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .evidence-table thead tr {
+            background: var(--bg2);
+        }
+
+        .evidence-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            background: rgba(0,212,255,0.06);
+        }
+
+        .evidence-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .evidence-table tbody tr {
+            transition: background 0.15s;
+        }
+
+        .evidence-table tbody tr:hover {
+            background: rgba(0,212,255,0.04);
+        }
+
+        .evidence-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .ev-id {
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.05em;
+        }
+
+        /* ── ACTION BUTTONS ── */
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 6px 12px;
+            border-radius: 5px;
+            border: 1px solid;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .action-btn svg { width: 11px; height: 11px; }
+
+        .btn-transfer {
+            color: var(--accent);
+            border-color: rgba(0,212,255,0.3);
+            background: rgba(0,212,255,0.05);
+        }
+        .btn-transfer:hover { background: rgba(0,212,255,0.12); border-color: var(--accent); }
+
+        .btn-verify {
+            color: var(--success);
+            border-color: rgba(0,229,160,0.3);
+            background: rgba(0,229,160,0.05);
+        }
+        .btn-verify:hover { background: rgba(0,229,160,0.12); border-color: var(--success); }
+
+        .btn-history {
+            color: #b983ff;
+            border-color: rgba(185,131,255,0.3);
+            background: rgba(185,131,255,0.05);
+        }
+        .btn-history:hover { background: rgba(185,131,255,0.12); border-color: #b983ff; }
+
+        .btn-logs {
+            color: var(--warn);
+            border-color: rgba(255,107,53,0.3);
+            background: rgba(255,107,53,0.05);
+        }
+        .btn-logs:hover { background: rgba(255,107,53,0.12); border-color: var(--warn); }
+
+        .btn-report {
+            color: #ffd166;
+            border-color: rgba(255,209,102,0.3);
+            background: rgba(255,209,102,0.05);
+        }
+        .btn-report:hover { background: rgba(255,209,102,0.12); border-color: #ffd166; }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .empty-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 1rem;
+            background: var(--bg3);
+            border: 1px solid var(--border2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .empty-icon svg { width: 24px; height: 24px; color: var(--muted); }
+
+        .empty-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .empty-sub {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        /* ── ADMIN / AUDITOR PANELS ── */
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .info-block {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+
+        .info-block-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .info-block-icon.blue { background: rgba(0,212,255,0.1); }
+        .info-block-icon.green { background: rgba(0,229,160,0.1); }
+        .info-block-icon.purple { background: rgba(185,131,255,0.1); }
+        .info-block-icon svg { width: 17px; height: 17px; }
+
+        .info-block h4 {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 5px;
+        }
+
+        .info-block p {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        /* ── SCAN LINE ANIMATION ── */
+        .panel-card::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: -2px;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(0,212,255,0.5), transparent);
+            animation: scanline 3s 0.3s linear infinite;
+        }
+
+        .panel-card { position: relative; }
+
+        @keyframes scanline {
+            0%   { top: -2px; opacity: 0; }
+            5%   { opacity: 1; }
+            95%  { opacity: 1; }
+            100% { top: 102%; opacity: 0; }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── ACTION GRID (admin/auditor clickable cards) ── */
+        .action-grid {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .action-card {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            padding: 1.25rem 1.5rem;
+            text-decoration: none;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+
+        .action-card:last-child { border-bottom: none; }
+
+        .action-card:hover {
+            background: rgba(0,212,255,0.04);
+        }
+
+        .action-card:hover .action-card-arrow { color: var(--accent); transform: translateX(3px); }
+
+        .action-card-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .action-card-icon svg { width: 20px; height: 20px; }
+        .action-card-icon.blue  { background: rgba(0,212,255,0.1);   border: 1px solid rgba(0,212,255,0.2); }
+        .action-card-icon.green { background: rgba(0,229,160,0.1);   border: 1px solid rgba(0,229,160,0.2); }
+        .action-card-icon.purple{ background: rgba(185,131,255,0.1); border: 1px solid rgba(185,131,255,0.2); }
+
+        .action-card-body { flex: 1; }
+
+        .action-card-title {
+            font-size: 14px; font-weight: 700;
+            color: var(--text); margin-bottom: 3px;
+        }
+
+        .action-card-desc {
+            font-size: 12px; color: var(--muted); line-height: 1.4;
+        }
+
+        .action-card-arrow {
+            color: var(--muted);
+            transition: color 0.15s, transform 0.15s;
+        }
+
+        .action-card-arrow svg { width: 14px; height: 14px; display: block; }
+
+        .readonly-badge {
+            font-family: var(--mono); font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; color: var(--warn);
+            background: rgba(255,107,53,0.08);
+            border: 1px solid rgba(255,107,53,0.25);
+            border-radius: 4px; padding: 3px 9px;
+        }
+        @media (max-width: 640px) {
+            .container { padding: 2rem 1rem; }
+            .topbar { padding: 0 1rem; }
+            .brand-name { display: none; }
+            .actions { gap: 4px; }
+        }
+    </style>
 </head>
 <body>
 
+<!-- TOPBAR -->
 <div class="topbar">
-    <h3>Cyber Forensic System</h3>
-    <div>
-        Logged in as: <strong>{{ role }}</strong> |
-        <a href="/logout">Logout</a>
+    <div class="topbar-brand">
+        <div class="brand-icon">
+            <svg viewBox="0 0 18 18" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                <path d="M9 2L15 5.5V12.5L9 16L3 12.5V5.5L9 2Z"/>
+                <path d="M9 6V12M6.5 7.5L11.5 10.5"/>
+            </svg>
+        </div>
+        <span class="brand-name">Cyber<span>Forensic</span></span>
+    </div>
+    <div class="topbar-right">
+        <div class="topbar-user">
+            <div class="user-avatar">{{ username[0] if username else role[0] }}</div>
+            <div class="user-info">
+                <span class="user-name">{{ username if username else "Operator" }}</span>
+                <div class="role-badge">
+                    <div class="role-dot"></div>
+                    <strong>{{ role }}</strong>
+                </div>
+            </div>
+        </div>
+        <a href="/logout" class="logout-btn">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M5.5 2H2.5C2 2 1.5 2.5 1.5 3V11C1.5 11.5 2 12 2.5 12H5.5"/>
+                <path d="M9.5 9.5L12.5 7L9.5 4.5M5.5 7H12.5"/>
+            </svg>
+            Logout
+        </a>
     </div>
 </div>
 
 <div class="container">
 
-    <h2>Dashboard</h2>
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-label">// System Dashboard</div>
+        <h1 class="page-title">
+            {% if role == "admin" %}Command <span>Center</span>
+            {% elif role == "investigator" %}Evidence <span>Vault</span>
+            {% elif role == "auditor" %}Audit <span>Console</span>
+            {% else %}Dashboard{% endif %}
+        </h1>
+    </div>
 
+
+    <!-- ═══════════════ ADMIN ═══════════════ -->
     {% if role == "admin" %}
-        <h3>Admin Panel</h3>
-        <p>Manage users and evidence.</p>
 
+    <div class="stat-grid" style="margin-bottom:2.5rem;">
+        <div class="stat-card">
+            <div class="stat-label">Role</div>
+            <div class="stat-value accent">ADMIN</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Access Level</div>
+            <div class="stat-value success">FULL</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" style="font-size:1.1rem; padding-top:4px;">ACTIVE SESSION</div>
+        </div>
+    </div>
+
+    <div class="panel-card">
+        <div class="panel-head">
+            <div class="panel-head-left">
+                <div class="panel-head-icon">
+                    <svg viewBox="0 0 14 14" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                        <circle cx="5" cy="4" r="2"/><circle cx="9" cy="4" r="2"/>
+                        <path d="M1 12C1 10 2.8 8.5 5 8.5S9 10 9 12M11 8v4M9 10h4"/>
+                    </svg>
+                </div>
+                <span class="panel-title">Admin Panel</span>
+            </div>
+        </div>
+        <div class="action-grid">
+            <a href="/manage_users" class="action-card">
+                <div class="action-card-icon blue">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                        <circle cx="8" cy="7" r="3.5"/>
+                        <path d="M2 18c0-3.5 2.7-6 6-6s6 2.5 6 6"/>
+                        <path d="M15 7l3 3-3 3"/>
+                    </svg>
+                </div>
+                <div class="action-card-body">
+                    <div class="action-card-title">Manage Users</div>
+                    <div class="action-card-desc">View, manage and delete operator accounts</div>
+                </div>
+                <div class="action-card-arrow">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+                </div>
+            </a>
+            <a href="/evidence_control" class="action-card">
+                <div class="action-card-icon green">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="#00e5a0" stroke-width="1.5" stroke-linecap="round">
+                        <rect x="3" y="4" width="14" height="12" rx="2"/>
+                        <path d="M7 4V3a3 3 0 016 0v1M8 11l2 2 4-4"/>
+                    </svg>
+                </div>
+                <div class="action-card-body">
+                    <div class="action-card-title">Evidence Control</div>
+                    <div class="action-card-desc">Full overview of all submitted evidence files</div>
+                </div>
+                <div class="action-card-arrow">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+                </div>
+            </a>
+            <a href="/system_logs" class="action-card">
+                <div class="action-card-icon purple">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="#b983ff" stroke-width="1.5" stroke-linecap="round">
+                        <path d="M4 6h12M4 10h8M4 14h5"/>
+                    </svg>
+                </div>
+                <div class="action-card-body">
+                    <div class="action-card-title">System Logs</div>
+                    <div class="action-card-desc">Full audit trail of all verification events</div>
+                </div>
+                <div class="action-card-arrow">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+                </div>
+            </a>
+        </div>
+    </div>
+
+
+    <!-- ═══════════════ INVESTIGATOR ═══════════════ -->
     {% elif role == "investigator" %}
-        <h3>Investigator Panel</h3>
-        <a href="/upload"><button>Upload Evidence</button></a>
 
-        <table>
-            <tr>
-                <th>ID</th>
-                <th>Actions</th>
-            </tr>
+    {% set ev_count = evidences|length if evidences else 0 %}
+    <div class="stat-grid" style="margin-bottom:2.5rem;">
+        <div class="stat-card">
+            <div class="stat-label">Total Evidence</div>
+            <div class="stat-value accent">{{ ev_count }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Role</div>
+            <div class="stat-value success" style="font-size:1.1rem;padding-top:6px;">INVESTIGATOR</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Chain of Custody</div>
+            <div class="stat-value success" style="font-size:1rem;padding-top:8px;">INTACT</div>
+        </div>
+    </div>
 
-        {% if evidences %}
-        {% for evidence in evidences %}
-            <tr>
-                <td>EV-{{ "%03d"|format(evidence["id"]) }}</td>
-                <td>
-                    <a href="/transfer/{{ evidence['id'] }}">Transfer</a>
-                    <a href="/verify/{{ evidence['id'] }}">Verify</a>
-                    <a href="/custody/{{ evidence['id'] }}">History</a>
-                    <a href="/verification_logs">Verification Logs</a>
-                    <a href="/generate_report/{{ evidence['id'] }}">Download Report</a>
-                </td>
-            </tr>
-        {% endfor %}
-        {% else %}
-            <tr>
-                <td colspan="2">No evidence found</td>
-            </tr>
-        {% endif %}
-        </table>
+    <div class="panel-card">
+        <div class="panel-head">
+            <div class="panel-head-left">
+                <div class="panel-head-icon">
+                    <svg viewBox="0 0 14 14" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                        <rect x="2" y="3" width="10" height="8" rx="1.5"/>
+                        <path d="M5 3V2m4 1V2M2 6h10"/>
+                    </svg>
+                </div>
+                <span class="panel-title">Evidence Registry</span>
+            </div>
+            <a href="/upload" class="upload-btn">
+                <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M6.5 9V3M4 5.5L6.5 3 9 5.5"/>
+                    <path d="M2 10.5h9"/>
+                </svg>
+                Upload Evidence
+            </a>
+        </div>
 
+        <div class="evidence-table-wrap">
+            <table class="evidence-table">
+                <thead>
+                    <tr>
+                        <th>Evidence ID</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% if evidences %}
+                {% for evidence in evidences %}
+                    <tr>
+                        <td><span class="ev-id">EV-{{ "%03d"|format(evidence["id"]) }}</span></td>
+                        <td>
+                            <div class="actions">
+                                <a href="/transfer/{{ evidence['id'] }}" class="action-btn btn-transfer">
+                                    <svg viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 5.5h8M6.5 2.5l3 3-3 3"/></svg>
+                                    Transfer
+                                </a>
+                                <a href="/verify/{{ evidence['id'] }}" class="action-btn btn-verify">
+                                    <svg viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 6l2.5 2.5L9 3"/></svg>
+                                    Verify
+                                </a>
+                                <a href="/custody/{{ evidence['id'] }}" class="action-btn btn-history">
+                                    <svg viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5.5" cy="5.5" r="4"/><path d="M5.5 3.5V5.5l1.5 1.5"/></svg>
+                                    History
+                                </a>
+                                <a href="/verification_logs/{{ evidence['id'] }}" class="action-btn btn-logs">
+                                    <svg viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 3h8M1.5 5.5h5.5M1.5 8h3.5"/></svg>
+                                    Logs
+                                </a>
+                                <a href="/generate_report/{{ evidence['id'] }}" class="action-btn btn-report">
+                                    <svg viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="1.5" width="7" height="8" rx="1"/><path d="M4 4h3M4 6h2"/></svg>
+                                    Report
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="2">
+                            <div class="empty-state">
+                                <div class="empty-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                        <rect x="5" y="3" width="14" height="18" rx="2"/>
+                                        <path d="M9 8h6M9 12h4"/>
+                                    </svg>
+                                </div>
+                                <div class="empty-title">No evidence found</div>
+                                <div class="empty-sub">Upload your first piece of evidence to begin.</div>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <!-- ═══════════════ AUDITOR ═══════════════ -->
     {% elif role == "auditor" %}
-        <h3>Auditor Panel</h3>
-        <p>View evidence logs and verify integrity.</p>
+
+    <div class="stat-grid" style="margin-bottom:2.5rem;">
+        <div class="stat-card">
+            <div class="stat-label">Role</div>
+            <div class="stat-value accent" style="font-size:1.1rem;padding-top:6px;">AUDITOR</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Access Level</div>
+            <div class="stat-value warn" style="font-size:1rem;padding-top:8px;">READ-ONLY</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Integrity</div>
+            <div class="stat-value success" style="font-size:1.1rem;padding-top:6px;">VERIFIED</div>
+        </div>
+    </div>
+
+    <div class="panel-card">
+        <div class="panel-head">
+            <div class="panel-head-left">
+                <div class="panel-head-icon">
+                    <svg viewBox="0 0 14 14" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                        <path d="M7 2L12 4.5V9c0 2-2 3.5-5 4.5C4 12.5 2 11 2 9V4.5L7 2Z"/>
+                        <path d="M5 7l1.5 1.5L9 6"/>
+                    </svg>
+                </div>
+                <span class="panel-title">Audit Console</span>
+            </div>
+            <span class="readonly-badge">READ-ONLY</span>
+        </div>
+        <div class="action-grid">
+            <a href="/all_verification_logs" class="action-card">
+                <div class="action-card-icon blue">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                        <path d="M4 6h12M4 10h12M4 14h8"/>
+                    </svg>
+                </div>
+                <div class="action-card-body">
+                    <div class="action-card-title">Evidence Logs</div>
+                    <div class="action-card-desc">All verification logs across every evidence item</div>
+                </div>
+                <div class="action-card-arrow">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+                </div>
+            </a>
+            <a href="/integrity_checks" class="action-card">
+                <div class="action-card-icon green">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="#00e5a0" stroke-width="1.5" stroke-linecap="round">
+                        <path d="M10 2L17 5.5V11C17 15 13.5 18 10 19.5C6.5 18 3 15 3 11V5.5L10 2Z"/>
+                        <path d="M7 10.5l2 2 4-4"/>
+                    </svg>
+                </div>
+                <div class="action-card-body">
+                    <div class="action-card-title">Integrity Checks</div>
+                    <div class="action-card-desc">Hash comparison results and tamper detection records</div>
+                </div>
+                <div class="action-card-arrow">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+                </div>
+            </a>
+            <a href="/timeline_view" class="action-card">
+                <div class="action-card-icon purple">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="#b983ff" stroke-width="1.5" stroke-linecap="round">
+                        <circle cx="10" cy="10" r="7"/>
+                        <path d="M10 6v4l2.5 2.5"/>
+                    </svg>
+                </div>
+                <div class="action-card-body">
+                    <div class="action-card-title">Timeline View</div>
+                    <div class="action-card-desc">Chronological chain-of-custody audit trail</div>
+                </div>
+                <div class="action-card-arrow">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
+                </div>
+            </a>
+        </div>
+    </div>
+
     {% endif %}
 
 </div>
-
 </body>
 </html>

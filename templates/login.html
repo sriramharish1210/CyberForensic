@@ -1,21 +1,223 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Login</title>
+    <title>Login — CyberForensic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #080c10; --bg2: #0d1117; --bg3: #111820;
+            --panel: #131c26; --border: #1e2e3e; --border2: #253647;
+            --accent: #00d4ff; --accent2: #0077ff;
+            --success: #00e5a0; --danger: #ff3b5c;
+            --text: #e2eaf3; --muted: #6a8099;
+            --mono: 'Space Mono', monospace; --sans: 'Syne', sans-serif;
+        }
+        html, body {
+            background: var(--bg); color: var(--text);
+            font-family: var(--sans); min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+        /* corner glow */
+        body::after {
+            content: '';
+            position: fixed;
+            top: -200px; left: 50%; transform: translateX(-50%);
+            width: 600px; height: 400px;
+            background: radial-gradient(ellipse, rgba(0,119,255,0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .login-wrap {
+            position: relative; z-index: 1;
+            width: 100%; max-width: 420px;
+            padding: 1.5rem;
+            animation: fadeUp 0.5s ease both;
+        }
+
+        /* brand */
+        .brand {
+            display: flex; align-items: center; justify-content: center;
+            gap: 12px; margin-bottom: 2.5rem;
+        }
+        .brand-icon {
+            width: 44px; height: 44px;
+            border: 1.5px solid var(--accent); border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .brand-icon svg { width: 22px; height: 22px; }
+        .brand-name {
+            font-size: 18px; font-weight: 800;
+            letter-spacing: 0.12em; text-transform: uppercase;
+        }
+        .brand-name span { color: var(--accent); }
+
+        /* card */
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .card-head {
+            padding: 1.5rem 1.75rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg3);
+        }
+        .card-label {
+            font-family: var(--mono); font-size: 10px;
+            letter-spacing: 0.2em; color: var(--accent);
+            text-transform: uppercase; margin-bottom: 6px;
+        }
+        .card-title {
+            font-size: 1.4rem; font-weight: 800;
+        }
+        .card-sub {
+            font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5;
+        }
+        .card-body { padding: 1.75rem; }
+
+        /* form */
+        .field { margin-bottom: 1.25rem; }
+        .field-label {
+            display: block;
+            font-family: var(--mono); font-size: 10px;
+            letter-spacing: 0.15em; text-transform: uppercase;
+            color: var(--muted); margin-bottom: 8px;
+        }
+        .field-wrap {
+            position: relative;
+        }
+        .field-icon {
+            position: absolute; left: 13px;
+            top: 0; bottom: 0;
+            display: flex; align-items: center;
+            color: var(--muted);
+            pointer-events: none;
+        }
+        .field-icon svg { width: 15px; height: 15px; display: block; }
+        .field input {
+            width: 100%;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 13px;
+            padding: 12px 14px 12px 40px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .field input::placeholder { color: var(--muted); }
+        .field input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0,212,255,0.1);
+        }
+
+        .submit-btn {
+            width: 100%;
+            margin-top: 0.5rem;
+            background: linear-gradient(135deg, var(--accent2), var(--accent));
+            color: #000;
+            font-family: var(--mono); font-size: 12px;
+            font-weight: 700; letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 13px;
+            border: none; border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        .submit-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+        .submit-btn:active { transform: translateY(0); }
+
+        .card-foot {
+            padding: 1.1rem 1.75rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            background: var(--bg3);
+        }
+        .card-foot a {
+            font-family: var(--mono); font-size: 11px;
+            color: var(--muted); text-decoration: none;
+            letter-spacing: 0.06em;
+            transition: color 0.2s;
+        }
+        .card-foot a span { color: var(--accent); }
+        .card-foot a:hover { color: var(--text); }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Login</h2>
+<div class="login-wrap">
+    <div class="brand">
+        <div class="brand-icon">
+            <svg viewBox="0 0 18 18" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                <path d="M9 2L15 5.5V12.5L9 16L3 12.5V5.5L9 2Z"/>
+                <path d="M9 6V12M6.5 7.5L11.5 10.5"/>
+            </svg>
+        </div>
+        <span class="brand-name">Cyber<span>Forensic</span></span>
+    </div>
 
-    <form method="POST">
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <button type="submit">Login</button>
-    </form>
+    <div class="card">
+        <div class="card-head">
+            <div class="card-label">// Secure Access</div>
+            <h1 class="card-title">Operator Login</h1>
+            <p class="card-sub">Authenticate to access the forensic evidence management system.</p>
+        </div>
 
-    <a class="small-link" href="/register">Create account</a>
+        <div class="card-body">
+            <form method="POST">
+                <div class="field">
+                    <label class="field-label" for="username">Username</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">
+                            <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                <circle cx="7.5" cy="5" r="3"/>
+                                <path d="M2 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/>
+                            </svg>
+                        </span>
+                        <input type="text" id="username" name="username" placeholder="Enter username" required>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label" for="password">Password</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">
+                            <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                <rect x="3" y="7" width="9" height="7" rx="1.5"/>
+                                <path d="M5 7V5a2.5 2.5 0 015 0v2"/>
+                            </svg>
+                        </span>
+                        <input type="password" id="password" name="password" placeholder="Enter password" required>
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn">Authenticate →</button>
+            </form>
+        </div>
+
+        <div class="card-foot">
+            <a href="/register">No account? <span>Create one →</span></a>
+        </div>
+    </div>
 </div>
 
 </body>

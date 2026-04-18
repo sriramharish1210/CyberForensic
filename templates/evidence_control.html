@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Evidence Control — CyberForensic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg:#080c10;--bg2:#0d1117;--bg3:#111820;--panel:#131c26;
+            --border:#1e2e3e;--border2:#253647;--accent:#00d4ff;--accent2:#0077ff;
+            --warn:#ff6b35;--success:#00e5a0;--danger:#ff3b5c;--purple:#b983ff;
+            --text:#e2eaf3;--muted:#6a8099;
+            --mono:'Space Mono',monospace;--sans:'Syne',sans-serif;
+        }
+        html,body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+        body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+        body>*{position:relative;z-index:1;}
+        .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:64px;background:rgba(8,12,16,0.92);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;}
+        .topbar-brand{display:flex;align-items:center;gap:12px;}
+        .brand-icon{width:36px;height:36px;border:1.5px solid var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+        .brand-name{font-size:15px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;}
+        .brand-name span{color:var(--accent);}
+        .back-btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:0.08em;padding:7px 16px;border:1px solid var(--border);border-radius:6px;transition:all 0.2s;}
+        .back-btn:hover{color:var(--accent);border-color:var(--accent);background:rgba(0,212,255,0.05);}
+        .back-btn svg{width:12px;height:12px;}
+        .container{max-width:1000px;margin:0 auto;padding:3rem 2rem;}
+        .page-header{margin-bottom:2.5rem;animation:fadeUp 0.5s ease both;}
+        .page-label{font-family:var(--mono);font-size:11px;letter-spacing:0.2em;color:var(--success);text-transform:uppercase;margin-bottom:10px;}
+        .page-title{font-size:2rem;font-weight:800;}
+        .page-title span{color:transparent;-webkit-text-stroke:1px var(--success);}
+        .page-sub{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.7;}
+        .stat-strip{display:flex;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:2.5rem;animation:fadeUp 0.5s 0.1s ease both;}
+        .stat-item{flex:1;background:var(--panel);padding:1rem 1.25rem;}
+        .stat-lbl{font-family:var(--mono);font-size:10px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;}
+        .stat-val{font-family:var(--mono);font-size:1.3rem;font-weight:700;}
+        .panel-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative;animation:fadeUp 0.5s 0.2s ease both;}
+        .panel-card::after{content:'';position:absolute;left:0;top:-2px;width:100%;height:2px;background:linear-gradient(90deg,transparent,rgba(0,229,160,0.5),transparent);animation:scanline 3s 0.3s linear infinite;}
+        @keyframes scanline{0%{top:-2px;opacity:0;}5%{opacity:1;}95%{opacity:1;}100%{top:102%;opacity:0;}}
+        .panel-head{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);background:var(--bg3);}
+        .panel-head-left{display:flex;align-items:center;gap:10px;}
+        .panel-head-icon{width:30px;height:30px;background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.25);border-radius:6px;display:flex;align-items:center;justify-content:center;}
+        .panel-head-icon svg{width:14px;height:14px;}
+        .panel-title{font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;}
+        .table-wrap{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;font-size:13px;}
+        th{padding:12px 16px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--success);border-bottom:1px solid var(--border);font-weight:700;background:rgba(0,229,160,0.05);}
+        td{padding:14px 16px;border-bottom:1px solid var(--border);vertical-align:middle;}
+        tbody tr{transition:background 0.15s;}
+        tbody tr:hover{background:rgba(0,229,160,0.03);}
+        tbody tr:last-child td{border-bottom:none;}
+        .ev-id{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent);}
+        .ev-file{font-family:var(--mono);font-size:12px;color:var(--text);}
+        .ev-custodian{font-family:var(--mono);font-size:12px;color:var(--muted);}
+        .view-btn{display:inline-flex;align-items:center;gap:5px;text-decoration:none;font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 11px;border-radius:5px;border:1px solid rgba(0,229,160,0.3);color:var(--success);background:rgba(0,229,160,0.05);transition:all 0.15s;}
+        .view-btn:hover{background:rgba(0,229,160,0.12);border-color:var(--success);}
+        .view-btn svg{width:10px;height:10px;}
+        .empty-state{padding:4rem 2rem;text-align:center;}
+        .empty-icon{width:56px;height:56px;margin:0 auto 1rem;background:var(--bg3);border:1px solid var(--border2);border-radius:12px;display:flex;align-items:center;justify-content:center;}
+        .empty-icon svg{width:24px;height:24px;color:var(--muted);}
+        .empty-title{font-size:15px;font-weight:700;margin-bottom:6px;}
+        .empty-sub{font-size:13px;color:var(--muted);}
+        .footer-nav{margin-top:2rem;animation:fadeUp 0.5s 0.35s ease both;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+        @media(max-width:640px){.container{padding:2rem 1rem;}.topbar{padding:0 1rem;}.brand-name{display:none;}}
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-brand">
+        <div class="brand-icon">
+            <svg viewBox="0 0 18 18" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                <path d="M9 2L15 5.5V12.5L9 16L3 12.5V5.5L9 2Z"/>
+                <path d="M9 6V12M6.5 7.5L11.5 10.5"/>
+            </svg>
+        </div>
+        <span class="brand-name">Cyber<span>Forensic</span></span>
+    </div>
+    <a href="/dashboard" class="back-btn">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7.5 2L3.5 6l4 4"/></svg>
+        Back to Dashboard
+    </a>
+</div>
+
+<div class="container">
+
+    <div class="page-header">
+        <div class="page-label">// Admin — Evidence Control</div>
+        <h1 class="page-title">Evidence <span>Control</span></h1>
+        <p class="page-sub">Complete overview of all evidence items submitted to the system. Admins have full visibility into every file, its current custodian, and chain history.</p>
+    </div>
+
+    {% set total = evidences|length if evidences else 0 %}
+    <div class="stat-strip">
+        <div class="stat-item"><div class="stat-lbl">Total Evidence</div><div class="stat-val" style="color:var(--success);">{{ total }}</div></div>
+        <div class="stat-item"><div class="stat-lbl">System Status</div><div class="stat-val" style="color:var(--accent);font-size:1rem;padding-top:6px;">ACTIVE</div></div>
+    </div>
+
+    <div class="panel-card">
+        <div class="panel-head">
+            <div class="panel-head-left">
+                <div class="panel-head-icon">
+                    <svg viewBox="0 0 14 14" fill="none" stroke="#00e5a0" stroke-width="1.5" stroke-linecap="round">
+                        <rect x="2" y="3" width="10" height="8" rx="1.5"/>
+                        <path d="M5 3V2m4 1V2M2 6h10"/>
+                    </svg>
+                </div>
+                <span class="panel-title">All Evidence Items</span>
+            </div>
+        </div>
+        <div class="table-wrap">
+            {% if evidences %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Evidence ID</th>
+                        <th>File Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for e in evidences %}
+                <tr>
+                    <td><span class="ev-id">EV-{{ "%03d"|format(e[0]) }}</span></td>
+                    <td><span class="ev-file">{{ e[1] }}</span></td>
+                    <td>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <a href="/custody/{{ e[0] }}" class="view-btn">
+                                <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="5" r="3.5"/><path d="M5 3.5V5l1 1"/></svg>
+                                History
+                            </a>
+                            <a href="/verification_logs/{{ e[0] }}" class="view-btn">
+                                <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 3h7M1.5 5.5h5M1.5 8h3"/></svg>
+                                Logs
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h4"/>
+                    </svg>
+                </div>
+                <div class="empty-title">No evidence in system</div>
+                <div class="empty-sub">No files have been uploaded yet.</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="footer-nav">
+        <a href="/dashboard" class="back-btn">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7.5 2L3.5 6l4 4"/></svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+</div>
+</body>
+</html>
