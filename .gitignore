@@ -1,20 +1,7 @@
-# Python cache
-__pycache__/
-*.pyc
-
-# Virtual environment
-venv/
-
-# Database
-*.db
-
-# Uploaded evidence files (VERY IMPORTANT)
 uploads/
-
-# Logs / temp files
+reports/
+venv/
+__pycache__/
+*.db
 *.log
-*.txt
-
-# OS junk
-.DS_Store
-Thumbs.db
+.env
