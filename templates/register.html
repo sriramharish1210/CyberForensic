@@ -92,27 +92,93 @@
         .field select { cursor: pointer; }
         .field select option { background: var(--bg2); }
 
-        /* role pills */
-        .role-info {
-            display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 8px; margin-top: 10px;
+        /* ── ROLE SELECTOR ── */
+        .role-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 8px;
         }
-        .role-pill {
-            background: var(--bg3);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px 8px;
+
+        .role-btn {
+            position: relative;
+            background: var(--bg2);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 8px 12px;
             text-align: center;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            user-select: none;
         }
-        .role-pill-name {
+
+        /* glow pulse on hover */
+        .role-btn::before {
+            content: '';
+            position: absolute; inset: -1px;
+            border-radius: 10px;
+            opacity: 0;
+            transition: opacity 0.25s;
+            pointer-events: none;
+        }
+
+        .role-btn.admin-btn::before    { box-shadow: 0 0 18px 3px rgba(255,59,92,0.45); }
+        .role-btn.inv-btn::before      { box-shadow: 0 0 18px 3px rgba(0,212,255,0.45); }
+        .role-btn.auditor-btn::before  { box-shadow: 0 0 18px 3px rgba(0,229,160,0.45); }
+
+        .role-btn:hover::before,
+        .role-btn.active::before { opacity: 1; }
+
+        /* hover border */
+        .role-btn.admin-btn:hover,   .role-btn.admin-btn.active   { border-color: var(--danger);  background: rgba(255,59,92,0.08);  transform: translateY(-2px); }
+        .role-btn.inv-btn:hover,     .role-btn.inv-btn.active     { border-color: var(--accent);  background: rgba(0,212,255,0.08);  transform: translateY(-2px); }
+        .role-btn.auditor-btn:hover, .role-btn.auditor-btn.active { border-color: var(--success); background: rgba(0,229,160,0.08); transform: translateY(-2px); }
+
+        /* active selected state */
+        .role-btn.admin-btn.active   { border-width: 2px; box-shadow: 0 4px 20px rgba(255,59,92,0.25); }
+        .role-btn.inv-btn.active     { border-width: 2px; box-shadow: 0 4px 20px rgba(0,212,255,0.25); }
+        .role-btn.auditor-btn.active { border-width: 2px; box-shadow: 0 4px 20px rgba(0,229,160,0.25); }
+
+        .role-btn-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 8px;
+            transition: all 0.25s;
+        }
+        .admin-btn   .role-btn-icon { background: rgba(255,59,92,0.1);  border: 1px solid rgba(255,59,92,0.25); }
+        .inv-btn     .role-btn-icon { background: rgba(0,212,255,0.1);  border: 1px solid rgba(0,212,255,0.25); }
+        .auditor-btn .role-btn-icon { background: rgba(0,229,160,0.1);  border: 1px solid rgba(0,229,160,0.25); }
+        .role-btn-icon svg { width: 14px; height: 14px; }
+
+        .role-btn-name {
             font-family: var(--mono); font-size: 10px;
-            font-weight: 700; letter-spacing: 0.08em;
+            font-weight: 700; letter-spacing: 0.1em;
             text-transform: uppercase; margin-bottom: 4px;
+            transition: color 0.2s;
         }
-        .role-pill-name.admin { color: var(--danger); }
-        .role-pill-name.investigator { color: var(--accent); }
-        .role-pill-name.auditor { color: var(--success); }
-        .role-pill-desc { font-size: 10px; color: var(--muted); line-height: 1.4; }
+        .admin-btn   .role-btn-name { color: var(--danger); }
+        .inv-btn     .role-btn-name { color: var(--accent); }
+        .auditor-btn .role-btn-name { color: var(--success); }
+
+        .role-btn-desc { font-size: 10px; color: var(--muted); line-height: 1.4; transition: color 0.2s; }
+        .role-btn:hover .role-btn-desc,
+        .role-btn.active .role-btn-desc { color: var(--text); }
+
+        /* selected checkmark */
+        .role-check {
+            position: absolute; top: 6px; right: 6px;
+            width: 16px; height: 16px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transform: scale(0.5);
+            transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+        }
+        .admin-btn   .role-check { background: var(--danger); }
+        .inv-btn     .role-check { background: var(--accent); }
+        .auditor-btn .role-check { background: var(--success); }
+        .role-check svg { width: 9px; height: 9px; }
+        .role-btn.active .role-check { opacity: 1; transform: scale(1); }
 
         .submit-btn {
             width: 100%; margin-top: 0.25rem;
@@ -181,31 +247,53 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label class="field-label" for="role">Access Role</label>
-                    <div class="field-wrap select-wrap">
-                        <span class="field-icon">
-                            <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                                <path d="M2 4h11M5 8h5M7 12h1"/>
-                            </svg>
-                        </span>
-                        <select id="role" name="role">
-                            <option value="admin">Admin</option>
-                            <option value="investigator">Investigator</option>
-                            <option value="auditor">Auditor</option>
-                        </select>
-                    </div>
-                    <div class="role-info">
-                        <div class="role-pill">
-                            <div class="role-pill-name admin">Admin</div>
-                            <div class="role-pill-desc">Full system control</div>
+                    <label class="field-label">Access Role</label>
+                    <!-- Hidden input that Flask reads — same name="role" -->
+                    <input type="hidden" id="role" name="role" value="admin">
+
+                    <div class="role-selector">
+                        <!-- ADMIN -->
+                        <div class="role-btn admin-btn active" onclick="selectRole('admin', this)">
+                            <div class="role-check">
+                                <svg viewBox="0 0 9 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M1.5 4.5l2 2 4-4"/></svg>
+                            </div>
+                            <div class="role-btn-icon">
+                                <svg viewBox="0 0 14 14" fill="none" stroke="#ff3b5c" stroke-width="1.5" stroke-linecap="round">
+                                    <path d="M7 1.5L12 4V8C12 10.5 9.5 12.5 7 13.5C4.5 12.5 2 10.5 2 8V4L7 1.5Z"/>
+                                </svg>
+                            </div>
+                            <div class="role-btn-name">Admin</div>
+                            <div class="role-btn-desc">Full system control</div>
                         </div>
-                        <div class="role-pill">
-                            <div class="role-pill-name investigator">Investigator</div>
-                            <div class="role-pill-desc">Upload &amp; manage evidence</div>
+
+                        <!-- INVESTIGATOR -->
+                        <div class="role-btn inv-btn" onclick="selectRole('investigator', this)">
+                            <div class="role-check">
+                                <svg viewBox="0 0 9 9" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><path d="M1.5 4.5l2 2 4-4"/></svg>
+                            </div>
+                            <div class="role-btn-icon">
+                                <svg viewBox="0 0 14 14" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                                    <circle cx="5" cy="4.5" r="2.5"/>
+                                    <path d="M1 13c0-2.5 1.8-4 4-4s4 1.5 4 4"/>
+                                    <path d="M10.5 6l2 2-2 2"/>
+                                </svg>
+                            </div>
+                            <div class="role-btn-name">Investigator</div>
+                            <div class="role-btn-desc">Upload &amp; manage evidence</div>
                         </div>
-                        <div class="role-pill">
-                            <div class="role-pill-name auditor">Auditor</div>
-                            <div class="role-pill-desc">View logs only</div>
+
+                        <!-- AUDITOR -->
+                        <div class="role-btn auditor-btn" onclick="selectRole('auditor', this)">
+                            <div class="role-check">
+                                <svg viewBox="0 0 9 9" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><path d="M1.5 4.5l2 2 4-4"/></svg>
+                            </div>
+                            <div class="role-btn-icon">
+                                <svg viewBox="0 0 14 14" fill="none" stroke="#00e5a0" stroke-width="1.5" stroke-linecap="round">
+                                    <path d="M3 5h8M3 8h5M3 11h3"/>
+                                </svg>
+                            </div>
+                            <div class="role-btn-name">Auditor</div>
+                            <div class="role-btn-desc">View logs only</div>
                         </div>
                     </div>
                 </div>
@@ -220,4 +308,14 @@
 </div>
 
 </body>
+<script>
+function selectRole(role, el) {
+    // Remove active from all buttons
+    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+    // Activate clicked
+    el.classList.add('active');
+    // Update hidden input
+    document.getElementById('role').value = role;
+}
+</script>
 </html>

@@ -102,17 +102,21 @@
         .topbar-user {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            background: var(--panel);
+            border: 1px solid var(--border2);
+            border-radius: 10px;
+            padding: 7px 14px 7px 8px;
         }
 
         .user-avatar {
-            width: 32px; height: 32px;
+            width: 34px; height: 34px;
             border-radius: 50%;
-            background: rgba(0,212,255,0.12);
-            border: 1.5px solid rgba(0,212,255,0.35);
+            background: rgba(0,212,255,0.15);
+            border: 1.5px solid rgba(0,212,255,0.4);
             display: flex; align-items: center; justify-content: center;
             font-family: var(--mono);
-            font-size: 11px; font-weight: 700;
+            font-size: 13px; font-weight: 700;
             color: var(--accent);
             text-transform: uppercase;
             flex-shrink: 0;
@@ -121,15 +125,16 @@
         .user-info {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 3px;
         }
 
         .user-name {
             font-family: var(--mono);
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
             color: var(--text);
             letter-spacing: 0.04em;
+            line-height: 1;
         }
 
         .role-badge {
@@ -138,8 +143,8 @@
             gap: 5px;
             font-family: var(--mono);
             font-size: 10px;
-            color: var(--muted);
-            letter-spacing: 0.06em;
+            letter-spacing: 0.08em;
+            line-height: 1;
         }
 
         .role-badge strong {
@@ -212,9 +217,12 @@
         }
 
         .page-title span {
-            color: transparent;
-            -webkit-text-stroke: 1px var(--accent);
+            color: var(--accent);
+            display: inline;
         }
+
+        /* make both words clearly visible - no outline trick */
+        .page-title.two-tone { color: var(--text); }
 
         /* ── STAT CARDS ── */
         .stat-grid {
@@ -538,6 +546,71 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        .file-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-type-badge {
+            font-family: var(--mono);
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 3px 7px;
+            border-radius: 4px;
+            border: 1px solid;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* file type color classes - no Jinja needed */
+        .ft-image   { color: #00d4ff; border-color: rgba(0,212,255,0.2);   background: rgba(0,212,255,0.08); }
+        .ft-video   { color: #b983ff; border-color: rgba(185,131,255,0.2); background: rgba(185,131,255,0.08); }
+        .ft-audio   { color: #ff6b35; border-color: rgba(255,107,53,0.2);  background: rgba(255,107,53,0.08); }
+        .ft-pdf     { color: #ff3b5c; border-color: rgba(255,59,92,0.2);   background: rgba(255,59,92,0.08); }
+        .ft-document{ color: #00e5a0; border-color: rgba(0,229,160,0.2);   background: rgba(0,229,160,0.08); }
+        .ft-spreadsheet{ color: #00e5a0; border-color: rgba(0,229,160,0.2); background: rgba(0,229,160,0.08); }
+        .ft-archive { color: #ff6b35; border-color: rgba(255,107,53,0.2);  background: rgba(255,107,53,0.08); }
+        .ft-code    { color: #ffd166; border-color: rgba(255,209,102,0.2); background: rgba(255,209,102,0.08); }
+        .ft-file    { color: #6a8099; border-color: rgba(106,128,153,0.2); background: rgba(106,128,153,0.08); }
+
+        .fl-image   { color: #00d4ff; }
+        .fl-video   { color: #b983ff; }
+        .fl-audio   { color: #ff6b35; }
+        .fl-pdf     { color: #ff3b5c; }
+        .fl-document{ color: #00e5a0; }
+        .fl-spreadsheet{ color: #00e5a0; }
+        .fl-archive { color: #ff6b35; }
+        .fl-code    { color: #ffd166; }
+        .fl-file    { color: #6a8099; }
+
+        .file-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        .file-format {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
         /* ── ACTION GRID (admin/auditor clickable cards) ── */
         .action-grid {
             display: flex;
@@ -624,7 +697,7 @@
         <div class="topbar-user">
             <div class="user-avatar">{{ username[0] if username else role[0] }}</div>
             <div class="user-info">
-                <span class="user-name">{{ username if username else "Operator" }}</span>
+                <span class="user-name">{{ username if username else role|title }}</span>
                 <div class="role-badge">
                     <div class="role-dot"></div>
                     <strong>{{ role }}</strong>
@@ -717,15 +790,16 @@
                     <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
                 </div>
             </a>
-            <a href="/system_logs" class="action-card">
+            <a href="/policy" class="action-card">
                 <div class="action-card-icon purple">
                     <svg viewBox="0 0 20 20" fill="none" stroke="#b983ff" stroke-width="1.5" stroke-linecap="round">
-                        <path d="M4 6h12M4 10h8M4 14h5"/>
+                        <path d="M10 2L17 5.5V11C17 15 13.5 18 10 19.5C6.5 18 3 15 3 11V5.5L10 2Z"/>
+                        <path d="M7 10l2 2 4-4M10 6v1"/>
                     </svg>
                 </div>
                 <div class="action-card-body">
-                    <div class="action-card-title">System Logs</div>
-                    <div class="action-card-desc">Full audit trail of all verification events</div>
+                    <div class="action-card-title">Evidence Retention & Auto-Policy</div>
+                    <div class="action-card-desc">Create and apply automated evidence retention rules</div>
                 </div>
                 <div class="action-card-arrow">
                     <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
@@ -779,14 +853,45 @@
                 <thead>
                     <tr>
                         <th>Evidence ID</th>
+                        <th>File</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% if evidences %}
                 {% for evidence in evidences %}
+                    {% set fname = evidence["filename"] if evidence["filename"] is defined else evidence.get("filename", "") %}
+                    {% set ext = fname.rsplit(".",1)[-1].lower() if "." in fname else "" %}
+                    {% if ext in ["jpg","jpeg","png","gif","bmp","webp","svg","tiff"] %}
+                        {% set ftype = "image" %}
+                    {% elif ext in ["mp4","mov","avi","mkv","wmv","flv","webm"] %}
+                        {% set ftype = "video" %}
+                    {% elif ext in ["mp3","wav","aac","flac","ogg","m4a"] %}
+                        {% set ftype = "audio" %}
+                    {% elif ext in ["pdf"] %}
+                        {% set ftype = "pdf" %}
+                    {% elif ext in ["doc","docx","txt","rtf","odt"] %}
+                        {% set ftype = "document" %}
+                    {% elif ext in ["xls","xlsx","csv"] %}
+                        {% set ftype = "spreadsheet" %}
+                    {% elif ext in ["zip","rar","7z","tar","gz"] %}
+                        {% set ftype = "archive" %}
+                    {% elif ext in ["py","js","html","css","java","c","cpp","sh","json","xml"] %}
+                        {% set ftype = "code" %}
+                    {% else %}
+                        {% set ftype = "file" %}
+                    {% endif %}
                     <tr>
                         <td><span class="ev-id">EV-{{ "%03d"|format(evidence["id"]) }}</span></td>
+                        <td>
+                            <div class="file-cell">
+                                <span class="file-type-badge ft-{{ ftype }}">.{{ ext if ext else "?" }}</span>
+                                <div class="file-info">
+                                    <span class="file-name">{{ fname if fname else "Unknown" }}</span>
+                                    <span class="file-format fl-{{ ftype }}">{{ ftype }}</span>
+                                </div>
+                            </div>
+                        </td>
                         <td>
                             <div class="actions">
                                 <a href="/transfer/{{ evidence['id'] }}" class="action-btn btn-transfer">
@@ -815,7 +920,7 @@
                 {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="2">
+                        <td colspan="3">
                             <div class="empty-state">
                                 <div class="empty-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
@@ -881,16 +986,16 @@
                     <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>
                 </div>
             </a>
-            <a href="/integrity_checks" class="action-card">
+            <a href="/auditor/dashboard" class="action-card">
                 <div class="action-card-icon green">
                     <svg viewBox="0 0 20 20" fill="none" stroke="#00e5a0" stroke-width="1.5" stroke-linecap="round">
-                        <path d="M10 2L17 5.5V11C17 15 13.5 18 10 19.5C6.5 18 3 15 3 11V5.5L10 2Z"/>
-                        <path d="M7 10.5l2 2 4-4"/>
+                        <rect x="2" y="3" width="16" height="14" rx="2"/>
+                        <path d="M2 7h16M6 3v4M14 3v4M6 11h3M6 14h5"/>
                     </svg>
                 </div>
                 <div class="action-card-body">
-                    <div class="action-card-title">Integrity Checks</div>
-                    <div class="action-card-desc">Hash comparison results and tamper detection records</div>
+                    <div class="action-card-title">Case Review Dashboard</div>
+                    <div class="action-card-desc">Risk table, tampered highlights &amp; custody overview</div>
                 </div>
                 <div class="action-card-arrow">
                     <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg>

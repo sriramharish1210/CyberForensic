@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Retention Policy — CyberForensic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg:#080c10; --bg2:#0d1117; --bg3:#111820; --panel:#131c26;
+            --border:#1e2e3e; --border2:#253647;
+            --accent:#00d4ff; --accent2:#0077ff;
+            --warn:#ff6b35; --success:#00e5a0; --danger:#ff3b5c; --purple:#b983ff;
+            --text:#e2eaf3; --muted:#6a8099;
+            --mono:'Space Mono',monospace; --sans:'Syne',sans-serif;
+        }
+        html, body { background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; overflow-x:hidden; }
+        body::before {
+            content:''; position:fixed; inset:0;
+            background-image: linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px), linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);
+            background-size:40px 40px; pointer-events:none; z-index:0;
+        }
+        body::after {
+            content:''; position:fixed; top:-180px; left:50%; transform:translateX(-50%);
+            width:700px; height:400px;
+            background:radial-gradient(ellipse,rgba(185,131,255,0.07) 0%,transparent 70%);
+            pointer-events:none; z-index:0;
+        }
+        body > * { position:relative; z-index:1; }
+
+        /* ── TOPBAR ── */
+        .topbar { display:flex; align-items:center; justify-content:space-between; padding:0 2rem; height:64px; background:rgba(8,12,16,0.92); border-bottom:1px solid var(--border); backdrop-filter:blur(12px); position:sticky; top:0; z-index:100; }
+        .topbar-brand { display:flex; align-items:center; gap:12px; }
+        .brand-icon { width:36px; height:36px; border:1.5px solid var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; }
+        .brand-name { font-size:15px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; }
+        .brand-name span { color:var(--accent); }
+        .back-btn { display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:var(--muted); font-family:var(--mono); font-size:11px; letter-spacing:0.08em; padding:7px 16px; border:1px solid var(--border); border-radius:6px; transition:all 0.2s; }
+        .back-btn:hover { color:var(--purple); border-color:var(--purple); background:rgba(185,131,255,0.05); }
+        .back-btn svg { width:12px; height:12px; }
+
+        /* ── LAYOUT ── */
+        .container { max-width:680px; margin:0 auto; padding:3rem 2rem; }
+
+        /* ── PAGE HEADER ── */
+        .page-header { margin-bottom:2.5rem; animation:fadeUp 0.5s ease both; }
+        .page-label { font-family:var(--mono); font-size:11px; letter-spacing:0.2em; color:var(--purple); text-transform:uppercase; margin-bottom:10px; }
+        .page-title { font-size:2rem; font-weight:800; }
+        .page-title span { color:var(--purple); }
+        .page-sub { margin-top:10px; font-size:13px; color:var(--muted); line-height:1.7; }
+
+        /* ── PANEL CARD ── */
+        .panel-card { background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:hidden; position:relative; animation:fadeUp 0.5s 0.1s ease both; }
+        .panel-card::after { content:''; position:absolute; left:0; top:-2px; width:100%; height:2px; background:linear-gradient(90deg,transparent,rgba(185,131,255,0.55),transparent); animation:scanline 3s 0.3s linear infinite; }
+        @keyframes scanline { 0%{top:-2px;opacity:0;} 5%{opacity:1;} 95%{opacity:1;} 100%{top:102%;opacity:0;} }
+        .panel-head { display:flex; align-items:center; gap:10px; padding:1.2rem 1.5rem; border-bottom:1px solid var(--border); background:var(--bg3); }
+        .panel-head-icon { width:30px; height:30px; background:rgba(185,131,255,0.1); border:1px solid rgba(185,131,255,0.25); border-radius:6px; display:flex; align-items:center; justify-content:center; }
+        .panel-head-icon svg { width:14px; height:14px; }
+        .panel-title { font-size:13px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; }
+        .panel-body { padding:1.75rem; }
+
+        /* ── FORM FIELDS ── */
+        .field { margin-bottom:1.4rem; }
+        .field-label { display:block; font-family:var(--mono); font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+        .field-wrap { position:relative; }
+        .field-icon { position:absolute; left:13px; top:0; bottom:0; display:flex; align-items:center; color:var(--muted); pointer-events:none; }
+        .field-icon svg { width:15px; height:15px; display:block; }
+        .field input[type="text"],
+        .field input[type="number"] {
+            width:100%; background:var(--bg2); border:1px solid var(--border);
+            border-radius:8px; color:var(--text); font-family:var(--mono);
+            font-size:13px; padding:12px 14px 12px 40px;
+            outline:none; transition:border-color 0.2s, box-shadow 0.2s;
+        }
+        .field input::placeholder { color:var(--muted); }
+        .field input:focus { border-color:var(--purple); box-shadow:0 0 0 3px rgba(185,131,255,0.1); }
+
+        /* ── TOGGLE SWITCH ── */
+        .toggle-row {
+            display:flex; align-items:center; justify-content:space-between;
+            background:var(--bg2); border:1px solid var(--border);
+            border-radius:8px; padding:14px 16px;
+            cursor:pointer; transition:border-color 0.2s, background 0.2s;
+        }
+        .toggle-row:hover { border-color:var(--border2); background:rgba(185,131,255,0.03); }
+        .toggle-row.on { border-color:rgba(185,131,255,0.3); background:rgba(185,131,255,0.05); }
+        .toggle-label-wrap { display:flex; flex-direction:column; gap:3px; }
+        .toggle-title { font-size:13px; font-weight:700; color:var(--text); }
+        .toggle-desc { font-size:11px; color:var(--muted); font-family:var(--mono); }
+
+        .toggle-switch {
+            width:44px; height:24px; border-radius:12px;
+            background:var(--bg3); border:1px solid var(--border2);
+            position:relative; transition:all 0.25s; flex-shrink:0;
+        }
+        .toggle-switch::after {
+            content:''; position:absolute;
+            width:16px; height:16px; border-radius:50%;
+            background:var(--muted); top:3px; left:3px;
+            transition:all 0.25s;
+        }
+        .toggle-row.on .toggle-switch { background:rgba(185,131,255,0.2); border-color:var(--purple); }
+        .toggle-row.on .toggle-switch::after { background:var(--purple); left:23px; box-shadow:0 0 8px rgba(185,131,255,0.5); }
+
+        /* hidden real checkbox */
+        .toggle-checkbox { display:none; }
+
+        /* ── WARNING NOTE ── */
+        .warn-note { display:flex; align-items:flex-start; gap:10px; background:rgba(255,107,53,0.06); border:1px solid rgba(255,107,53,0.2); border-radius:8px; padding:12px 14px; margin-bottom:1.5rem; }
+        .warn-note svg { width:15px; height:15px; color:var(--warn); flex-shrink:0; margin-top:1px; }
+        .warn-note p { font-size:12px; color:var(--muted); line-height:1.6; }
+        .warn-note p strong { color:var(--warn); }
+
+        /* ── SUBMIT ── */
+        .submit-btn {
+            width:100%; background:linear-gradient(135deg,#7c3aed,var(--purple));
+            color:#fff; font-family:var(--mono); font-size:12px; font-weight:700;
+            letter-spacing:0.12em; text-transform:uppercase;
+            padding:13px; border:none; border-radius:8px;
+            cursor:pointer; transition:opacity 0.2s, transform 0.15s;
+            display:flex; align-items:center; justify-content:center; gap:8px;
+        }
+        .submit-btn svg { width:14px; height:14px; }
+        .submit-btn:hover { opacity:0.88; transform:translateY(-1px); }
+        .submit-btn:active { transform:translateY(0); }
+
+        /* ── DIVIDER ── */
+        .divider { height:1px; background:var(--border); margin:1.75rem 0; }
+
+        /* ── APPLY POLICY BUTTON ── */
+        .apply-section { animation:fadeUp 0.5s 0.2s ease both; }
+        .apply-card {
+            background:var(--panel); border:1px solid var(--border);
+            border-radius:12px; padding:1.5rem;
+            display:flex; align-items:center; gap:1.25rem;
+        }
+        .apply-icon { width:48px; height:48px; border-radius:10px; background:rgba(255,107,53,0.1); border:1px solid rgba(255,107,53,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .apply-icon svg { width:22px; height:22px; }
+        .apply-body { flex:1; }
+        .apply-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px; }
+        .apply-desc { font-size:12px; color:var(--muted); line-height:1.5; }
+        .apply-btn {
+            display:inline-flex; align-items:center; gap:8px;
+            text-decoration:none;
+            background:linear-gradient(135deg,#c0390f,var(--warn));
+            color:#fff; font-family:var(--mono); font-size:11px; font-weight:700;
+            letter-spacing:0.1em; text-transform:uppercase;
+            padding:10px 20px; border-radius:8px; flex-shrink:0;
+            transition:opacity 0.2s, transform 0.15s;
+        }
+        .apply-btn:hover { opacity:0.88; transform:translateY(-1px); }
+        .apply-btn svg { width:13px; height:13px; }
+
+        .footer-nav { margin-top:2rem; animation:fadeUp 0.5s 0.3s ease both; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
+        @media(max-width:640px) { .container{padding:2rem 1rem;} .topbar{padding:0 1rem;} .brand-name{display:none;} .apply-card{flex-direction:column;} .apply-btn{width:100%;justify-content:center;} }
+    </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+    <div class="topbar-brand">
+        <div class="brand-icon">
+            <svg viewBox="0 0 18 18" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                <path d="M9 2L15 5.5V12.5L9 16L3 12.5V5.5L9 2Z"/>
+                <path d="M9 6V12M6.5 7.5L11.5 10.5"/>
+            </svg>
+        </div>
+        <span class="brand-name">Cyber<span>Forensic</span></span>
+    </div>
+    <a href="/dashboard" class="back-btn">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7.5 2L3.5 6l4 4"/></svg>
+        Back to Dashboard
+    </a>
+</div>
+
+<div class="container">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-label">// Admin — Policy Engine</div>
+        <h1 class="page-title">Evidence Retention <span>&amp; Auto-Policy</span></h1>
+        <p class="page-sub">Define how long evidence is retained in the system and configure automated deletion rules. Policies run on a schedule and can be triggered manually at any time.</p>
+    </div>
+
+    <!-- CREATE POLICY FORM -->
+    <div class="panel-card" style="margin-bottom:2rem;">
+        <div class="panel-head">
+            <div class="panel-head-icon">
+                <svg viewBox="0 0 14 14" fill="none" stroke="#b983ff" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M7 1.5L12 4V9.5C12 11.5 9.5 13 7 13.5C4.5 13 2 11.5 2 9.5V4L7 1.5Z"/>
+                    <path d="M7 5v3M7 9.5v.5"/>
+                </svg>
+            </div>
+            <span class="panel-title">Create New Policy</span>
+        </div>
+        <div class="panel-body">
+            <form method="POST" action="/admin/create_policy">
+
+                <div class="field">
+                    <label class="field-label" for="name">Policy Name</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">
+                            <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                <rect x="2" y="3" width="11" height="9" rx="1.5"/>
+                                <path d="M5 6h5M5 9h3"/>
+                            </svg>
+                        </span>
+                        <input type="text" id="name" name="name" placeholder="e.g. 90-Day Auto Purge" required>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="field-label" for="days">Retention Period (days)</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">
+                            <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                                <circle cx="7.5" cy="7.5" r="5.5"/>
+                                <path d="M7.5 4.5V7.5l2 2"/>
+                            </svg>
+                        </span>
+                        <input type="number" id="days" name="days" placeholder="e.g. 90" min="1" required>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="field-label">Auto-Delete</label>
+                    <div class="toggle-row" id="toggleRow" onclick="toggleAutoDelete()">
+                        <div class="toggle-label-wrap">
+                            <span class="toggle-title">Enable Automatic Deletion</span>
+                            <span class="toggle-desc">Evidence older than the retention period will be permanently deleted</span>
+                        </div>
+                        <div class="toggle-switch"></div>
+                        <input type="checkbox" class="toggle-checkbox" id="auto_delete" name="auto_delete">
+                    </div>
+                </div>
+
+                <div class="warn-note">
+                    <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <path d="M7.5 2L13.5 12.5H1.5L7.5 2Z"/>
+                        <path d="M7.5 6v3M7.5 10.5v.5"/>
+                    </svg>
+                    <p><strong>Warning:</strong> Enabling auto-delete will permanently remove evidence files past the retention period. This action cannot be undone and will affect chain-of-custody records.</p>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <path d="M7 1.5L12 4V9.5C12 11.5 9.5 13 7 13.5C4.5 13 2 11.5 2 9.5V4L7 1.5Z"/>
+                        <path d="M4.5 7l2 2 3-3"/>
+                    </svg>
+                    Create Policy
+                </button>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- APPLY POLICY -->
+    <div class="apply-section">
+        <div class="apply-card">
+            <div class="apply-icon">
+                <svg viewBox="0 0 22 22" fill="none" stroke="#ff6b35" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M11 3L19 7V13C19 17 15.5 20 11 21.5C6.5 20 3 17 3 13V7L11 3Z"/>
+                    <path d="M8 11l2.5 2.5L15 8"/>
+                    <path d="M11 7v1"/>
+                </svg>
+            </div>
+            <div class="apply-body">
+                <div class="apply-title">Apply Policy Now</div>
+                <div class="apply-desc">Immediately run all active retention policies against current evidence. This will flag or delete evidence that exceeds the configured retention period.</div>
+            </div>
+            <a href="/admin/apply_policy" class="apply-btn">
+                <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M2 6.5h9M7.5 3L11 6.5 7.5 10"/>
+                </svg>
+                Run Now
+            </a>
+        </div>
+    </div>
+
+    <div class="footer-nav">
+        <a href="/dashboard" class="back-btn">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7.5 2L3.5 6l4 4"/></svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+</div>
+
+<script>
+function toggleAutoDelete() {
+    const row = document.getElementById('toggleRow');
+    const cb  = document.getElementById('auto_delete');
+    const on  = row.classList.toggle('on');
+    cb.checked = on;
+}
+</script>
+
+</body>
+</html>

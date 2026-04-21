@@ -14,7 +14,8 @@ app = Flask(__name__)
 app.secret_key = "super_secret_key"
 
 UPLOAD_FOLDER = "uploads"
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["UPLOAD_FOLDER"] = os.path.join(os.getcwd(), "uploads")
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 @app.route("/")
 def home():
@@ -88,6 +89,7 @@ def dashboard():
     return render_template(
         "dashboard.html",
         role=session["role"],
+        username=session["username"],
         evidences=evidences
     )
 
@@ -98,55 +100,71 @@ def upload():
         return "Unauthorized", 403
 
     if request.method == "POST":
-        file = request.files["file"]
+        file = request.files.get("file")
 
-        if file:
+        if not file or file.filename == "":
+            return "No file selected"
+
+        try:
             filename = file.filename
             filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
 
+            print("UPLOAD PATH:", filepath)
+
+            # ✅ SAVE FIRST
             file.save(filepath)
 
-            # Generate hash
+            print("FILE SAVED:", os.path.exists(filepath))
+
+            # ✅ NOW get size
+            file_size = os.path.getsize(filepath)
+
+            # ✅ Generate hash
             file_hash = generate_file_hash(filepath)
 
-            conn = get_db()
-            cur = conn.cursor()
+        except Exception as e:
+            print("UPLOAD ERROR:", str(e))
+            return "Upload failed: " + str(e)
 
-            # Insert into evidence table
-            cur.execute("""
-                INSERT INTO evidence 
-                (filename, file_hash, uploaded_by, upload_time, current_custodian, status)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (
-                filename,
-                file_hash,
-                session["user_id"],
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                session["user_id"],
-                "active"
-            ))
+        conn = get_db()
+        cur = conn.cursor()
 
-            evidence_id = cur.lastrowid
+        # ✅ FIXED SQL
+        cur.execute("""
+            INSERT INTO evidence 
+            (filename, file_hash, file_size, uploaded_by, upload_time, current_custodian, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            filename,
+            file_hash,
+            file_size,
+            session["user_id"],
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            session["user_id"],
+            "active"
+        ))
 
-            # Create first custody log
-            cur.execute("""
-                INSERT INTO custody_log
-                (evidence_id, action, from_user, to_user, timestamp, previous_hash, log_hash)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                evidence_id,
-                "uploaded",
-                session["user_id"],
-                session["user_id"],
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "GENESIS",
-                file_hash
-            ))
+        evidence_id = cur.lastrowid
 
-            conn.commit()
-            conn.close()
+        # Create first custody log
+        cur.execute("""
+            INSERT INTO custody_log
+            (evidence_id, action, from_user, to_user, timestamp, previous_hash, log_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            evidence_id,
+            "uploaded",
+            session["user_id"],
+            session["user_id"],
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "GENESIS",
+            file_hash
+        ))
 
-            return "Evidence uploaded successfully"
+        conn.commit()
+        conn.close()
+
+        return render_template("upload_success.html", evidence_id=evidence_id, filename=filename)
 
     return render_template("upload.html")
 
@@ -168,23 +186,42 @@ def transfer(evidence_id):
         return "Evidence not found"
 
     if request.method == "POST":
-        new_custodian = request.form["new_custodian"]
+        from_user_id = session["user_id"]
+        to_user_id = request.form.get("new_custodian")
+
+        if not to_user_id:
+            conn.close()
+            return "No user selected"
+
+        # CRITICAL FIX: validate role
+        cur.execute("SELECT role FROM users WHERE id = ?", (to_user_id,))
+        user_check = cur.fetchone()
+
+        if not user_check or user_check["role"] != "investigator":
+            conn.close()
+            return "Unauthorized transfer", 403
+
+        # Prevent self-transfer
+        if int(to_user_id) == from_user_id:
+            conn.close()
+            return "Cannot transfer to yourself", 400
+
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Get last log hash
+        # Get last hash
         cur.execute("""
             SELECT log_hash FROM custody_log
             WHERE evidence_id = ?
             ORDER BY id DESC LIMIT 1
         """, (evidence_id,))
         last_log = cur.fetchone()
-        previous_hash = last_log["log_hash"]
+        previous_hash = last_log["log_hash"] if last_log else "GENESIS"
 
-        # Create new log hash
-        data_string = f"{evidence_id}{session['user_id']}{new_custodian}{timestamp}{previous_hash}"
+        # Generate new hash
+        data_string = f"{evidence_id}{from_user_id}{to_user_id}{timestamp}{previous_hash}"
         new_log_hash = generate_log_hash(data_string)
 
-        # Insert new custody log
+        # Insert log
         cur.execute("""
             INSERT INTO custody_log
             (evidence_id, action, from_user, to_user, timestamp, previous_hash, log_hash)
@@ -192,30 +229,48 @@ def transfer(evidence_id):
         """, (
             evidence_id,
             "transferred",
-            session["user_id"],
-            new_custodian,
+            from_user_id,
+            to_user_id,
             timestamp,
             previous_hash,
             new_log_hash
         ))
 
-        # Update current custodian
+        # Update evidence
         cur.execute("""
             UPDATE evidence SET current_custodian = ?
             WHERE id = ?
-        """, (new_custodian, evidence_id))
+        """, (to_user_id, evidence_id))
 
         conn.commit()
+
+        # Get usernames
+        cur.execute("SELECT username FROM users WHERE id=?", (from_user_id,))
+        from_user = cur.fetchone()["username"]
+
+        cur.execute("SELECT username FROM users WHERE id=?", (to_user_id,))
+        to_user = cur.fetchone()["username"]
+
         conn.close()
 
-        return "Evidence transferred successfully"
+        return render_template(
+            "transfer_success.html",
+            evidence_id=evidence_id,
+            from_user=from_user,
+            to_user=to_user
+        )
 
-    # Get list of users for dropdown
-    cur.execute("SELECT id, username FROM users")
-    users = cur.fetchall()
+    #FIXED GET: only investigators
+    cur.execute("""
+        SELECT id, username FROM users
+        WHERE role = 'investigator'
+        AND id != ?
+    """, (session["user_id"],))
+    investigators = cur.fetchall()
+
     conn.close()
 
-    return render_template("transfer.html", evidence=evidence, users=users)
+    return render_template("transfer.html", evidence=evidence, investigators=investigators)
 
 # ---------------- VERIFY ----------------
 @app.route("/verify/<int:evidence_id>")
@@ -235,26 +290,53 @@ def verify(evidence_id):
         return render_template(
             "verify.html",
             evidence_id=evidence_id,
-            status="not_found"
+            status="not_found",
+            reason="Evidence not found in database"
         )
 
     file_path = os.path.join(app.config["UPLOAD_FOLDER"], evidence["filename"])
 
+    print("VERIFYING FILE:", file_path)
+
+    # ---------------- NEW LOGIC ----------------
+    status = "verified"
+    reason = "Integrity intact"
+
     if not os.path.exists(file_path):
-        return render_template(
-            "verify.html",
-            evidence_id=evidence_id,
-            status="missing"
-        )
+        print("FILE EXISTS:", False)
 
-    # Recalculate hash
-    current_hash = generate_file_hash(file_path)
+        files_in_folder = os.listdir(app.config["UPLOAD_FOLDER"])
 
-    if current_hash == evidence["file_hash"]:
-        status = "verified"
-    else:
         status = "tampered"
 
+        if len(files_in_folder) == 0:
+            reason = "Evidence file deleted"
+        else:
+            reason = "Original file missing (possible rename or replacement)"
+
+    else:
+        print("FILE EXISTS:", True)
+        print("FILE SIZE:", os.path.getsize(file_path))
+
+        current_hash = generate_file_hash(file_path)
+        current_size = os.path.getsize(file_path)
+
+        print("EXPECTED HASH:", evidence["file_hash"])
+        print("CURRENT HASH:", current_hash)
+
+        if current_hash != evidence["file_hash"]:
+            status = "tampered"
+            reason = "File content modified (hash mismatch)"
+
+        elif evidence["file_size"] is not None and current_size != evidence["file_size"]:
+            status = "tampered"
+            reason = "File size changed (possible replacement)"
+
+        else:
+            status = "verified"
+            reason = "Integrity intact"
+
+    # ---------------- LOG ----------------
     conn = get_db()
     cur = conn.cursor()
 
@@ -266,10 +348,12 @@ def verify(evidence_id):
     conn.commit()
     conn.close()
 
+    # ---------------- RETURN ----------------
     return render_template(
         "verify.html",
         evidence_id=evidence_id,
-        status=status
+        status=status,
+        reason=reason
     )
 
 # ---------------- VERIFICATION LOGS ----------------
@@ -436,6 +520,71 @@ def system_logs():
 
     return render_template("system_logs.html", logs=logs)
 
+# ---------------- CREATE POLICY ----------------
+@app.route('/admin/create_policy', methods=['POST'])
+def create_policy():
+    name = request.form['name']
+    days = int(request.form['days'])
+    auto_delete = request.form.get('auto_delete') == 'on'
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO retention_policies (name, days, auto_delete)
+        VALUES (?, ?, ?)
+    """, (name, days, auto_delete))
+
+    conn.commit()
+    conn.close()
+
+    return redirect('/admin/dashboard')
+
+# ---------------- APLLY POLICY ----------------
+from datetime import datetime, timedelta
+import os
+
+@app.route('/admin/apply_policy')
+def apply_policy():
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("SELECT days, auto_delete FROM retention_policies ORDER BY id DESC LIMIT 1")
+    policy = cur.fetchone()
+
+    if not policy:
+        return "No policy set"
+
+    days, auto_delete = policy
+    cutoff = datetime.now() - timedelta(days=days)
+
+    cur.execute("SELECT id, file_path, created_at FROM evidence")
+    evidences = cur.fetchall()
+
+    for ev in evidences:
+        ev_id, file_path, created_at = ev
+
+        created_at = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S")
+
+        if created_at < cutoff:
+            if auto_delete:
+                try:
+                    os.remove(file_path)
+                except:
+                    pass
+
+                cur.execute("DELETE FROM evidence WHERE id=?", (ev_id,))
+
+    conn.commit()
+    conn.close()
+
+    return "Policy Applied Successfully"
+
+# ---------------- POLICY----------------
+@app.route('/policy')
+def policy_page():
+    return render_template('policy.html')
+
 #AUDT PANEL
 # ---------------- VERIFICATION LOGS ----------------
 @app.route("/all_verification_logs")
@@ -496,6 +645,48 @@ def timeline_view():
     conn.close()
 
     return render_template("timeline.html", logs=logs)
+
+# ---------------- AUDIT DASHBOARD ----------------
+@app.route("/auditor/dashboard")
+def auditor_dashboard():
+    if "user_id" not in session or session.get("role") != "auditor":
+        return "Access Denied"
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Total evidence
+    cur.execute("SELECT COUNT(*) as total FROM evidence")
+    total = cur.fetchone()["total"]
+
+    # Latest verification per evidence
+    cur.execute("""
+        SELECT e.id, e.filename, u.username AS custodian,
+               v.result, v.timestamp
+        FROM evidence e
+        LEFT JOIN users u ON e.current_custodian = u.id
+        LEFT JOIN verification_log v ON v.evidence_id = e.id
+        WHERE v.id IN (
+            SELECT MAX(id) FROM verification_log GROUP BY evidence_id
+        )
+        ORDER BY v.timestamp DESC
+    """)
+
+    records = cur.fetchall()
+
+    # Count stats
+    verified = sum(1 for r in records if r["result"] == "verified")
+    tampered = sum(1 for r in records if r["result"] == "tampered")
+
+    conn.close()
+
+    return render_template(
+        "auditor_dashboard.html",
+        total=total,
+        verified=verified,
+        tampered=tampered,
+        records=records
+    )
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")

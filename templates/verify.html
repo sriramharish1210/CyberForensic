@@ -34,7 +34,7 @@
         .page-header { margin-bottom: 2.5rem; animation: fadeUp 0.5s ease both; }
         .page-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; }
         .page-title { font-size: 2rem; font-weight: 800; }
-        .page-title span { color: transparent; -webkit-text-stroke: 1px var(--accent); }
+        .page-title span { color: var(--accent); }
         .page-sub { margin-top: 10px; font-size: 13px; color: var(--muted); line-height: 1.7; }
 
         /* evidence tag */
@@ -81,8 +81,10 @@
         .detail-row:last-child { border-bottom: none; }
         .detail-key { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
         .detail-val { font-family: var(--mono); font-size: 12px; font-weight: 700; }
-        .detail-val.verified { color: var(--success); }
-        .detail-val.tampered, .detail-val.missing, .detail-val.not_found { color: var(--danger); }
+        .detail-val.verified  { color: #fff; background: rgba(0,229,160,0.18); border: 1px solid rgba(0,229,160,0.35); padding: 2px 10px; border-radius: 4px; }
+        .detail-val.tampered  { color: #fff; background: rgba(255,59,92,0.18); border: 1px solid rgba(255,59,92,0.35); padding: 2px 10px; border-radius: 4px; }
+        .detail-val.missing   { color: #fff; background: rgba(255,107,53,0.18); border: 1px solid rgba(255,107,53,0.35); padding: 2px 10px; border-radius: 4px; }
+        .detail-val.not_found { color: #fff; background: rgba(255,107,53,0.18); border: 1px solid rgba(255,107,53,0.35); padding: 2px 10px; border-radius: 4px; }
         .detail-val.accent { color: var(--accent); }
 
         /* what this means block */
@@ -184,6 +186,12 @@
                 <span class="detail-key">File State</span>
                 <span class="detail-val tampered">Modified</span>
             </div>
+            {% if reason %}
+            <div class="detail-row">
+                <span class="detail-key">Reason</span>
+                <span class="detail-val tampered">{{ reason }}</span>
+            </div>
+            {% endif %}
             <div class="detail-row">
                 <span class="detail-key">Result</span>
                 <span class="detail-val tampered">FAIL</span>
@@ -217,6 +225,12 @@
                 <span class="detail-key">Record Status</span>
                 <span class="detail-val accent">Found</span>
             </div>
+            {% if reason %}
+            <div class="detail-row">
+                <span class="detail-key">Reason</span>
+                <span class="detail-val missing">{{ reason }}</span>
+            </div>
+            {% endif %}
             <div class="detail-row">
                 <span class="detail-key">Result</span>
                 <span class="detail-val missing">ERROR</span>
@@ -251,6 +265,12 @@
                 <span class="detail-key">File Found</span>
                 <span class="detail-val not_found">No</span>
             </div>
+            {% if reason %}
+            <div class="detail-row">
+                <span class="detail-key">Reason</span>
+                <span class="detail-val not_found">{{ reason }}</span>
+            </div>
+            {% endif %}
             <div class="detail-row">
                 <span class="detail-key">Result</span>
                 <span class="detail-val not_found">NOT FOUND</span>
@@ -260,6 +280,35 @@
     <div class="info-block">
         <div class="info-block-label">What this means</div>
         <div class="info-block-text">There is no database entry or file associated with this evidence ID. Please verify the ID is correct, or check if the evidence was removed from the system.</div>
+    </div>
+
+    <!-- ── FALLBACK: status not passed or unrecognised ── -->
+    {% else %}
+    <div class="status-card" style="border-color:rgba(106,128,153,0.3);background:var(--panel);">
+        <div class="status-head" style="background:rgba(106,128,153,0.05);border-bottom:1px solid rgba(106,128,153,0.15);">
+            <div class="status-icon" style="border-color:rgba(106,128,153,0.4);background:rgba(106,128,153,0.08);">
+                <svg viewBox="0 0 28 28" fill="none" stroke="#6a8099" stroke-width="2" stroke-linecap="round">
+                    <circle cx="14" cy="14" r="9"/>
+                    <path d="M14 10v4M14 17v1"/>
+                </svg>
+            </div>
+            <div class="status-title" style="color:var(--muted);">Awaiting Verification</div>
+            <p class="status-sub">No verification result was returned. The check may not have run correctly — please try again from the dashboard.</p>
+        </div>
+        <div class="status-body">
+            <div class="detail-row">
+                <span class="detail-key">Evidence ID</span>
+                <span class="detail-val accent">{{ evidence_id }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">Status</span>
+                <span class="detail-val" style="color:var(--muted);">No result</span>
+            </div>
+        </div>
+    </div>
+    <div class="info-block">
+        <div class="info-block-label">What to do</div>
+        <div class="info-block-text">Return to the dashboard and click Verify again on this evidence item. If the problem persists, check that the Flask <code style="font-family:var(--mono);color:var(--accent);font-size:12px;">verify</code> route is passing <code style="font-family:var(--mono);color:var(--accent);font-size:12px;">status</code> to the template.</div>
     </div>
     {% endif %}
 

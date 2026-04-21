@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Transfer Successful — CyberForensic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg:#080c10;--bg2:#0d1117;--bg3:#111820;--panel:#131c26;
+            --border:#1e2e3e;--border2:#253647;--accent:#00d4ff;--accent2:#0077ff;
+            --warn:#ff6b35;--success:#00e5a0;--danger:#ff3b5c;--purple:#b983ff;
+            --text:#e2eaf3;--muted:#6a8099;
+            --mono:'Space Mono',monospace;--sans:'Syne',sans-serif;
+        }
+        html,body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+        body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+        body::after{content:'';position:fixed;bottom:-200px;left:50%;transform:translateX(-50%);width:700px;height:400px;background:radial-gradient(ellipse,rgba(255,107,53,0.07) 0%,transparent 70%);pointer-events:none;}
+
+        .wrap{position:relative;z-index:1;width:100%;max-width:480px;padding:1.5rem;animation:fadeUp 0.5s ease both;}
+
+        /* arrow ring animation */
+        .success-ring{width:80px;height:80px;margin:0 auto 1.75rem;position:relative;}
+        .success-ring svg{width:80px;height:80px;}
+        .ring-circle{fill:none;stroke:var(--warn);stroke-width:2;stroke-dasharray:220;stroke-dashoffset:220;animation:drawRing 0.7s 0.2s ease forwards;transform-origin:center;transform:rotate(-90deg);}
+        .arrow-path{fill:none;stroke:var(--warn);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60;animation:drawCheck 0.4s 0.8s ease forwards;}
+        @keyframes drawRing{to{stroke-dashoffset:0;}}
+        @keyframes drawCheck{to{stroke-dashoffset:0;}}
+
+        .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+        .card-head{padding:2rem 1.75rem 1.5rem;text-align:center;border-bottom:1px solid var(--border);background:var(--bg3);}
+        .status-label{font-family:var(--mono);font-size:10px;letter-spacing:0.2em;color:var(--warn);text-transform:uppercase;margin-bottom:8px;}
+        .card-title{font-size:1.4rem;font-weight:800;}
+        .card-sub{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;}
+
+        .detail-list{padding:1.5rem 1.75rem;display:flex;flex-direction:column;}
+        .detail-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+        .detail-row:last-child{border-bottom:none;}
+        .detail-key{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);}
+        .detail-val{font-family:var(--mono);font-size:12px;font-weight:700;}
+        .detail-val.accent{color:var(--accent);}
+        .detail-val.warn{color:var(--warn);}
+        .detail-val.success{color:var(--success);}
+
+        /* from → to visual */
+        .transfer-visual{display:flex;align-items:center;justify-content:center;gap:12px;padding:1.5rem 1.75rem;border-bottom:1px solid var(--border);}
+        .t-user{text-align:center;}
+        .t-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px;font-weight:700;margin:0 auto 6px;text-transform:uppercase;}
+        .t-avatar.from{background:rgba(255,107,53,0.1);border:1.5px solid rgba(255,107,53,0.3);color:var(--warn);}
+        .t-avatar.to{background:rgba(0,229,160,0.1);border:1.5px solid rgba(0,229,160,0.3);color:var(--success);}
+        .t-label{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+        .t-name{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);}
+        .t-arrow{color:var(--warn);}
+        .t-arrow svg{width:24px;height:24px;}
+
+        .card-foot{padding:1.25rem 1.75rem;border-top:1px solid var(--border);background:var(--bg3);}
+        .dashboard-btn{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;width:100%;background:linear-gradient(135deg,#c0390f,var(--warn));color:#fff;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:13px;border-radius:8px;transition:opacity 0.2s,transform 0.15s;}
+        .dashboard-btn:hover{opacity:0.88;transform:translateY(-1px);}
+        .dashboard-btn svg{width:14px;height:14px;}
+
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+    </style>
+</head>
+<body>
+
+<div class="wrap">
+
+    <div class="success-ring">
+        <svg viewBox="0 0 80 80">
+            <circle class="ring-circle" cx="40" cy="40" r="35"/>
+            <polyline class="arrow-path" points="22,40 38,40 38,28 58,40 38,52 38,40"/>
+        </svg>
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <div class="status-label">// Transfer Complete</div>
+            <h1 class="card-title">Custody Transferred</h1>
+            <p class="card-sub">The evidence has been successfully reassigned. The chain of custody has been updated and logged.</p>
+        </div>
+
+        <!-- From → To visual -->
+        <div class="transfer-visual">
+            <div class="t-user">
+                <div class="t-label">From</div>
+                <div class="t-avatar from">{{ from_user[0] if from_user else "?" }}</div>
+                <div class="t-name">{{ from_user if from_user else "Previous Custodian" }}</div>
+            </div>
+            <div class="t-arrow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M5 12h14M14 7l5 5-5 5"/>
+                </svg>
+            </div>
+            <div class="t-user">
+                <div class="t-label">To</div>
+                <div class="t-avatar to">{{ to_user[0] if to_user else "?" }}</div>
+                <div class="t-name">{{ to_user if to_user else "New Custodian" }}</div>
+            </div>
+        </div>
+
+        <div class="detail-list">
+            <div class="detail-row">
+                <span class="detail-key">Evidence ID</span>
+                <span class="detail-val accent">EV-{{ "%03d"|format(evidence_id) if evidence_id else "—" }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">Event Type</span>
+                <span class="detail-val warn">Transfer</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">Chain Status</span>
+                <span class="detail-val success">Updated</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-key">Logged</span>
+                <span class="detail-val success">Confirmed</span>
+            </div>
+        </div>
+
+        <div class="card-foot">
+            <a href="/dashboard" class="dashboard-btn">
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <rect x="2" y="2" width="4" height="4" rx="0.75"/>
+                    <rect x="8" y="2" width="4" height="4" rx="0.75"/>
+                    <rect x="2" y="8" width="4" height="4" rx="0.75"/>
+                    <rect x="8" y="8" width="4" height="4" rx="0.75"/>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

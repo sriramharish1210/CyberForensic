@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Auditor Case Review — CyberForensic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg:#080c10; --bg2:#0d1117; --bg3:#111820; --panel:#131c26;
+            --border:#1e2e3e; --border2:#253647;
+            --accent:#00d4ff; --accent2:#0077ff;
+            --warn:#ff6b35; --success:#00e5a0; --danger:#ff3b5c; --purple:#b983ff;
+            --text:#e2eaf3; --muted:#6a8099;
+            --mono:'Space Mono',monospace; --sans:'Syne',sans-serif;
+        }
+        html,body { background:var(--bg); color:var(--text); font-family:var(--sans); min-height:100vh; overflow-x:hidden; }
+        body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
+        body > * { position:relative; z-index:1; }
+
+        /* ── TOPBAR ── */
+        .topbar { display:flex; align-items:center; justify-content:space-between; padding:0 2rem; height:64px; background:rgba(8,12,16,0.92); border-bottom:1px solid var(--border); backdrop-filter:blur(12px); position:sticky; top:0; z-index:100; }
+        .topbar-brand { display:flex; align-items:center; gap:12px; }
+        .brand-icon { width:36px; height:36px; border:1.5px solid var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; }
+        .brand-name { font-size:15px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; }
+        .brand-name span { color:var(--accent); }
+        .topbar-right { display:flex; align-items:center; gap:12px; }
+        .readonly-chip { font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:0.1em; color:var(--warn); background:rgba(255,107,53,0.08); border:1px solid rgba(255,107,53,0.25); border-radius:4px; padding:4px 10px; }
+        .back-btn { display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:var(--muted); font-family:var(--mono); font-size:11px; letter-spacing:0.08em; padding:7px 16px; border:1px solid var(--border); border-radius:6px; transition:all 0.2s; }
+        .back-btn:hover { color:var(--accent); border-color:var(--accent); background:rgba(0,212,255,0.05); }
+        .back-btn svg { width:12px; height:12px; }
+
+        .container { max-width:1200px; margin:0 auto; padding:3rem 2rem; }
+
+        /* ── PAGE HEADER ── */
+        .page-header { margin-bottom:2.5rem; animation:fadeUp 0.5s ease both; }
+        .page-label { font-family:var(--mono); font-size:11px; letter-spacing:0.2em; color:var(--success); text-transform:uppercase; margin-bottom:10px; }
+        .page-title { font-size:2rem; font-weight:800; }
+        .page-title span { color:var(--success); }
+        .page-sub { margin-top:10px; font-size:13px; color:var(--muted); line-height:1.7; max-width:600px; }
+
+        /* ── STAT STRIP ── */
+        .stat-strip { display:flex; gap:1px; background:var(--border); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:2.5rem; animation:fadeUp 0.5s 0.1s ease both; }
+        .stat-item { flex:1; background:var(--panel); padding:1.25rem; }
+        .stat-lbl { font-family:var(--mono); font-size:10px; letter-spacing:0.15em; color:var(--muted); text-transform:uppercase; margin-bottom:8px; }
+        .stat-val { font-family:var(--mono); font-size:1.6rem; font-weight:700; line-height:1; }
+        .sv-total   { color:var(--text); }
+        .sv-verified{ color:var(--success); }
+        .sv-tampered{ color:var(--danger); }
+        .sv-pct     { color:var(--accent); font-size:1.3rem; padding-top:4px; }
+
+        /* ── CHART + FILTER ROW ── */
+        .top-row { display:grid; grid-template-columns:1fr 320px; gap:1.5rem; margin-bottom:2.5rem; animation:fadeUp 0.5s 0.15s ease both; }
+
+        /* donut chart */
+        .chart-card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:1.5rem; display:flex; align-items:center; gap:1.75rem; }
+        .donut-wrap { position:relative; width:120px; height:120px; flex-shrink:0; }
+        .donut-svg { width:120px; height:120px; transform:rotate(-90deg); }
+        .donut-bg { fill:none; stroke:var(--border2); stroke-width:14; }
+        .donut-verified { fill:none; stroke:var(--success); stroke-width:14; stroke-linecap:round; transition:stroke-dashoffset 1s ease; }
+        .donut-tampered { fill:none; stroke:var(--danger); stroke-width:14; stroke-linecap:round; transition:stroke-dashoffset 1s ease; }
+        .donut-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+        .donut-pct { font-family:var(--mono); font-size:1.3rem; font-weight:700; color:var(--text); line-height:1; }
+        .donut-sub { font-family:var(--mono); font-size:9px; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-top:3px; }
+        .chart-legend { display:flex; flex-direction:column; gap:10px; }
+        .legend-item { display:flex; align-items:center; gap:8px; }
+        .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+        .legend-text { font-family:var(--mono); font-size:11px; color:var(--muted); }
+        .legend-count { font-family:var(--mono); font-size:11px; font-weight:700; margin-left:auto; }
+        .chart-title { font-size:13px; font-weight:700; color:var(--text); margin-bottom:1rem; letter-spacing:0.04em; }
+
+        /* filter card */
+        .filter-card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
+        .filter-title { font-family:var(--mono); font-size:10px; letter-spacing:0.15em; color:var(--muted); text-transform:uppercase; margin-bottom:12px; }
+        .filter-btns { display:flex; flex-direction:column; gap:8px; }
+        .filter-btn {
+            display:flex; align-items:center; gap:10px;
+            padding:10px 14px; border-radius:8px; border:1px solid var(--border);
+            background:var(--bg2); cursor:pointer; transition:all 0.15s;
+            font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:0.06em;
+            text-transform:uppercase; user-select:none;
+        }
+        .filter-btn:hover { border-color:var(--border2); color:var(--text); }
+        .filter-btn.active-all     { border-color:var(--accent);   background:rgba(0,212,255,0.06);   color:var(--accent); }
+        .filter-btn.active-verified{ border-color:var(--success);  background:rgba(0,229,160,0.06);   color:var(--success); }
+        .filter-btn.active-tampered{ border-color:var(--danger);   background:rgba(255,59,92,0.06);   color:var(--danger); }
+        .filter-btn.active-unchecked{ border-color:var(--muted);   background:rgba(106,128,153,0.06); color:var(--text); }
+        .filter-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .fd-all      { background:var(--accent); }
+        .fd-verified { background:var(--success); }
+        .fd-tampered { background:var(--danger); animation:blink 1.2s infinite; }
+        .fd-unchecked{ background:var(--muted); }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+        .filter-count { margin-left:auto; font-size:11px; font-weight:700; }
+
+        /* ── PANEL CARD ── */
+        .panel-card { background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:hidden; position:relative; animation:fadeUp 0.5s 0.2s ease both; }
+        .panel-card::after { content:''; position:absolute; left:0; top:-2px; width:100%; height:2px; background:linear-gradient(90deg,transparent,rgba(0,229,160,0.5),transparent); animation:scanline 3s 0.3s linear infinite; }
+        @keyframes scanline { 0%{top:-2px;opacity:0;} 5%{opacity:1;} 95%{opacity:1;} 100%{top:102%;opacity:0;} }
+        .panel-head { display:flex; align-items:center; justify-content:space-between; padding:1.2rem 1.5rem; border-bottom:1px solid var(--border); background:var(--bg3); }
+        .panel-head-left { display:flex; align-items:center; gap:10px; }
+        .panel-head-icon { width:30px; height:30px; background:rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.25); border-radius:6px; display:flex; align-items:center; justify-content:center; }
+        .panel-head-icon svg { width:14px; height:14px; }
+        .panel-title { font-size:13px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; }
+        .row-count { font-family:var(--mono); font-size:11px; color:var(--muted); }
+
+        /* ── RISK TABLE ── */
+        .table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:13px; }
+        th { padding:11px 16px; text-align:left; font-family:var(--mono); font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--success); border-bottom:1px solid var(--border); font-weight:700; background:rgba(0,229,160,0.04); }
+        td { padding:13px 16px; border-bottom:1px solid var(--border); vertical-align:middle; }
+        tbody tr { transition:background 0.15s; }
+        tbody tr:last-child td { border-bottom:none; }
+        tbody tr.row-verified:hover { background:rgba(0,229,160,0.03); }
+        tbody tr.row-tampered { background:rgba(255,59,92,0.04); }
+        tbody tr.row-tampered:hover { background:rgba(255,59,92,0.08); }
+        tbody tr.row-unchecked:hover { background:rgba(106,128,153,0.03); }
+
+        .ev-id { font-family:var(--mono); font-size:12px; font-weight:700; color:var(--accent); }
+        .filename-cell { font-family:var(--mono); font-size:12px; color:var(--text); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .custodian-cell { font-family:var(--mono); font-size:12px; color:var(--muted); }
+        .time-cell { font-family:var(--mono); font-size:11px; color:var(--muted); white-space:nowrap; }
+
+        /* status badges */
+        .status-badge { display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:4px 10px; border-radius:4px; border:1px solid; white-space:nowrap; }
+        .status-badge svg { width:9px; height:9px; flex-shrink:0; }
+        .badge-verified  { color:var(--success); border-color:rgba(0,229,160,0.3);  background:rgba(0,229,160,0.07); }
+        .badge-tampered  { color:var(--danger);  border-color:rgba(255,59,92,0.3);  background:rgba(255,59,92,0.07); animation:badge-pulse 1.5s infinite; }
+        .badge-unchecked { color:var(--muted);   border-color:rgba(106,128,153,0.25); background:rgba(106,128,153,0.06); }
+        @keyframes badge-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,59,92,0);} 50%{box-shadow:0 0 0 4px rgba(255,59,92,0.15);} }
+
+        /* tampered row indicator */
+        .tamper-indicator { display:flex; align-items:center; gap:6px; }
+        .tamper-dot { width:6px; height:6px; border-radius:50%; background:var(--danger); flex-shrink:0; animation:blink 1s infinite; }
+
+        /* action buttons */
+        .act-btns { display:flex; gap:6px; flex-wrap:wrap; }
+        .act-btn { display:inline-flex; align-items:center; gap:5px; text-decoration:none; font-family:var(--mono); font-size:10px; letter-spacing:0.07em; text-transform:uppercase; padding:5px 11px; border-radius:5px; border:1px solid; transition:all 0.15s; white-space:nowrap; }
+        .act-btn svg { width:10px; height:10px; }
+        .btn-logs    { color:var(--warn);    border-color:rgba(255,107,53,0.3);  background:rgba(255,107,53,0.05);  }
+        .btn-logs:hover    { background:rgba(255,107,53,0.12);  border-color:var(--warn); }
+        .btn-timeline{ color:var(--purple);  border-color:rgba(185,131,255,0.3); background:rgba(185,131,255,0.05); }
+        .btn-timeline:hover{ background:rgba(185,131,255,0.12); border-color:var(--purple); }
+
+        /* ── MINI TIMELINE (animated) ── */
+        .mini-timeline { display:flex; align-items:center; gap:0; }
+        .mt-dot { width:8px; height:8px; border-radius:50%; border:1.5px solid; flex-shrink:0; }
+        .mt-line { width:18px; height:1px; }
+        .mt-dot.verified { border-color:var(--success); background:rgba(0,229,160,0.3); }
+        .mt-dot.tampered { border-color:var(--danger);  background:rgba(255,59,92,0.3); animation:blink 1s infinite; }
+        .mt-dot.empty    { border-color:var(--border2); background:transparent; }
+        .mt-line.verified{ background:var(--success); opacity:0.3; }
+        .mt-line.tampered{ background:var(--danger);  opacity:0.3; }
+        .mt-line.empty   { background:var(--border2); opacity:0.5; }
+
+        /* ── NAV QUICK LINKS ── */
+        .quick-nav { display:flex; gap:12px; flex-wrap:wrap; margin-top:2rem; animation:fadeUp 0.5s 0.35s ease both; }
+        .nav-chip { display:inline-flex; align-items:center; gap:7px; text-decoration:none; font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; padding:9px 18px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--muted); transition:all 0.2s; }
+        .nav-chip:hover { color:var(--text); border-color:var(--border2); background:var(--bg3); transform:translateY(-1px); }
+        .nav-chip svg { width:13px; height:13px; }
+
+        /* ── EMPTY STATE ── */
+        .empty-state { padding:4rem 2rem; text-align:center; }
+        .empty-icon { width:56px; height:56px; margin:0 auto 1rem; background:var(--bg3); border:1px solid var(--border2); border-radius:12px; display:flex; align-items:center; justify-content:center; }
+        .empty-icon svg { width:24px; height:24px; color:var(--muted); }
+        .empty-title { font-size:15px; font-weight:700; margin-bottom:6px; }
+        .empty-sub { font-size:13px; color:var(--muted); }
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
+        @media(max-width:900px) { .top-row{grid-template-columns:1fr;} }
+        @media(max-width:640px) { .container{padding:2rem 1rem;} .topbar{padding:0 1rem;} .brand-name{display:none;} .stat-strip{flex-direction:column;gap:0;} }
+    </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+    <div class="topbar-brand">
+        <div class="brand-icon">
+            <svg viewBox="0 0 18 18" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round">
+                <path d="M9 2L15 5.5V12.5L9 16L3 12.5V5.5L9 2Z"/>
+                <path d="M9 6V12M6.5 7.5L11.5 10.5"/>
+            </svg>
+        </div>
+        <span class="brand-name">Cyber<span>Forensic</span></span>
+    </div>
+    <div class="topbar-right">
+        <span class="readonly-chip">READ-ONLY</span>
+        <a href="/dashboard" class="back-btn">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7.5 2L3.5 6l4 4"/></svg>
+            Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="container"
+    data-total="{{ total|default(0) }}"
+    data-verified="{{ verified|default(0) }}"
+    data-tampered="{{ tampered|default(0) }}"
+    id="mainContainer">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-label">// Auditor — Case Review</div>
+        <h1 class="page-title">Case Review <span>Dashboard</span></h1>
+        <p class="page-sub">Live integrity overview of all evidence in the system. Tampered entries are highlighted and flagged. Read-only — no modifications permitted.</p>
+    </div>
+
+    <!-- STAT STRIP -->
+    {% set integrity_pct = ((verified / total) * 100)|round|int if total > 0 else 0 %}
+    <div class="stat-strip">
+        <div class="stat-item">
+            <div class="stat-lbl">Total Evidence</div>
+            <div class="stat-val sv-total">{{ total }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-lbl">Verified</div>
+            <div class="stat-val sv-verified">{{ verified }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-lbl">Tampered</div>
+            <div class="stat-val sv-tampered">{{ tampered }}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-lbl">Integrity Rate</div>
+            <div class="stat-val sv-pct">{{ integrity_pct }}%</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-lbl">Risk Level</div>
+            {% if tampered == 0 %}
+            <div class="stat-val" style="font-size:1rem;padding-top:6px;color:var(--success);">LOW</div>
+            {% elif tampered <= 2 %}
+            <div class="stat-val" style="font-size:1rem;padding-top:6px;color:var(--warn);">MEDIUM</div>
+            {% else %}
+            <div class="stat-val" style="font-size:1rem;padding-top:6px;color:var(--danger);">HIGH</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- CHART + FILTER ROW -->
+    <div class="top-row">
+
+        <!-- DONUT CHART -->
+        <div class="chart-card">
+            <div class="donut-wrap">
+                <svg class="donut-svg" viewBox="0 0 120 120">
+                    <circle class="donut-bg" cx="60" cy="60" r="46"/>
+                    <!-- verified arc -->
+                    <circle class="donut-verified" cx="60" cy="60" r="46"
+                        id="arcVerified"
+                        stroke-dasharray="289 289"
+                        stroke-dashoffset="289"/>
+                    <!-- tampered arc -->
+                    <circle class="donut-tampered" cx="60" cy="60" r="46"
+                        id="arcTampered"
+                        stroke-dasharray="289 289"
+                        stroke-dashoffset="289"/>
+                </svg>
+                <div class="donut-label">
+                    <span class="donut-pct" id="donutPct">0%</span>
+                    <span class="donut-sub">Intact</span>
+                </div>
+            </div>
+            <div style="flex:1;">
+                <div class="chart-title">Integrity Breakdown</div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--success);"></div>
+                        <span class="legend-text">Verified</span>
+                        <span class="legend-count" style="color:var(--success);">{{ verified }}</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--danger);animation:blink 1.2s infinite;"></div>
+                        <span class="legend-text">Tampered</span>
+                        <span class="legend-count" style="color:var(--danger);">{{ tampered }}</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--muted);"></div>
+                        <span class="legend-text">Unchecked</span>
+                        <span class="legend-count" style="color:var(--muted);" id="legendUnchecked">—</span>
+                    </div>
+                    <div class="legend-item" style="margin-top:6px;padding-top:8px;border-top:1px solid var(--border);">
+                        <span class="legend-text" style="color:var(--muted);">Total</span>
+                        <span class="legend-count">{{ total }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FILTER CARD -->
+        <div class="filter-card">
+            <div class="filter-title">Filter by Status</div>
+            <div class="filter-btns">
+                <div class="filter-btn active-all" onclick="filterRows('all', this)">
+                    <div class="filter-dot fd-all"></div>
+                    All Evidence
+                    <span class="filter-count" style="color:var(--accent);">{{ total }}</span>
+                </div>
+                <div class="filter-btn" onclick="filterRows('verified', this)">
+                    <div class="filter-dot fd-verified"></div>
+                    Verified Only
+                    <span class="filter-count" style="color:var(--success);">{{ verified }}</span>
+                </div>
+                <div class="filter-btn" onclick="filterRows('tampered', this)">
+                    <div class="filter-dot fd-tampered"></div>
+                    Tampered Only
+                    <span class="filter-count" style="color:var(--danger);">{{ tampered }}</span>
+                </div>
+                <div class="filter-btn" onclick="filterRows('unchecked', this)">
+                    <div class="filter-dot fd-unchecked"></div>
+                    Not Checked
+                    <span class="filter-count" style="color:var(--muted);" id="uncheckedCount">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RISK TABLE -->
+    <div class="panel-card">
+        <div class="panel-head">
+            <div class="panel-head-left">
+                <div class="panel-head-icon">
+                    <svg viewBox="0 0 14 14" fill="none" stroke="#00e5a0" stroke-width="1.5" stroke-linecap="round">
+                        <rect x="2" y="3" width="10" height="8" rx="1.5"/>
+                        <path d="M5 3V2m4 1V2M2 6h10"/>
+                    </svg>
+                </div>
+                <span class="panel-title">Evidence Risk Table</span>
+            </div>
+            <span class="row-count" id="rowCountLabel">{{ records|length if records else 0 }} records</span>
+        </div>
+        <div class="table-wrap">
+            {% if records %}
+            <table id="riskTable">
+                <thead>
+                    <tr>
+                        <th>Evidence ID</th>
+                        <th>Filename</th>
+                        <th>Custodian</th>
+                        <th>History</th>
+                        <th>Last Status</th>
+                        <th>Last Checked</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for r in records %}
+                    {% set status = r["result"] if r["result"] else "unchecked" %}
+                    <tr class="row-{{ status }}" data-status="{{ status }}">
+                        <td>
+                            {% if status == "tampered" %}
+                            <div class="tamper-indicator">
+                                <div class="tamper-dot"></div>
+                                <span class="ev-id">EV-{{ "%03d"|format(r["id"]) }}</span>
+                            </div>
+                            {% else %}
+                            <span class="ev-id">EV-{{ "%03d"|format(r["id"]) }}</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="filename-cell" title="{{ r['filename'] }}">{{ r["filename"] if r["filename"] else "—" }}</span></td>
+                        <td><span class="custodian-cell">{{ r["custodian"] if r["custodian"] else "—" }}</span></td>
+                        <td>
+                            <!-- Mini animated timeline dots -->
+                            <div class="mini-timeline">
+                                <div class="mt-dot {{ status }}"></div>
+                                <div class="mt-line {{ status }}"></div>
+                                <div class="mt-dot {{ status }}"></div>
+                                <div class="mt-line {{ status }}"></div>
+                                <div class="mt-dot empty"></div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if status == "verified" %}
+                            <span class="status-badge badge-verified">
+                                <svg viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 4.5l2 2 4-4"/></svg>
+                                Verified
+                            </span>
+                            {% elif status == "tampered" %}
+                            <span class="status-badge badge-tampered">
+                                <svg viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2l5 5M7 2l-5 5"/></svg>
+                                Tampered
+                            </span>
+                            {% else %}
+                            <span class="status-badge badge-unchecked">
+                                <svg viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="4.5" cy="4.5" r="3"/></svg>
+                                Unchecked
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td><span class="time-cell">{{ r["timestamp"] if r["timestamp"] else "Never" }}</span></td>
+                        <td>
+                            <div class="act-btns">
+                                <a href="/verification_logs/{{ r['id'] }}" class="act-btn btn-logs">
+                                    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 3h7M1.5 5.5h5M1.5 8h3"/></svg>
+                                    Logs
+                                </a>
+                                <a href="/custody/{{ r['id'] }}" class="act-btn btn-timeline">
+                                    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5" cy="5" r="3.5"/><path d="M5 3v2l1.5 1.5"/></svg>
+                                    Timeline
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h4"/>
+                    </svg>
+                </div>
+                <div class="empty-title">No evidence records found</div>
+                <div class="empty-sub">Evidence with verification history will appear here.</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- QUICK NAV -->
+    <div class="quick-nav">
+        <a href="/all_verification_logs" class="nav-chip">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h9M2 7h6M2 10h4"/></svg>
+            All Logs
+        </a>
+        <a href="/timeline_view" class="nav-chip">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M6.5 4v2.5l2 1.5"/></svg>
+            Timeline View
+        </a>
+        <a href="/integrity_checks" class="nav-chip">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.5 1.5L11 4V8.5C11 11 8.5 12.5 6.5 13.5C4.5 12.5 2 11 2 8.5V4L6.5 1.5Z"/><path d="M4.5 7l1.5 1.5 3-3"/></svg>
+            Integrity Checks
+        </a>
+        <a href="/dashboard" class="nav-chip">
+            <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="1.5" width="4" height="4" rx="0.75"/><rect x="7.5" y="1.5" width="4" height="4" rx="0.75"/><rect x="1.5" y="7.5" width="4" height="4" rx="0.75"/><rect x="7.5" y="7.5" width="4" height="4" rx="0.75"/></svg>
+            Dashboard
+        </a>
+    </div>
+
+</div>
+
+<script>
+// ── READ DATA FROM HTML ATTRIBUTES (no Jinja in JS) ──
+const _c = document.getElementById('mainContainer');
+const total    = parseInt(_c.dataset.total    || '0', 10);
+const verified = parseInt(_c.dataset.verified || '0', 10);
+const tampered = parseInt(_c.dataset.tampered || '0', 10);
+const circumference = 2 * Math.PI * 46; // ~289
+
+const arcV = document.getElementById('arcVerified');
+const arcT = document.getElementById('arcTampered');
+const pctEl = document.getElementById('donutPct');
+const uncheckedEl = document.getElementById('legendUnchecked');
+const uncheckedCountEl = document.getElementById('uncheckedCount');
+
+const unchecked = Math.max(0, total - verified - tampered);
+if (uncheckedEl) uncheckedEl.textContent = unchecked;
+if (uncheckedCountEl) uncheckedCountEl.textContent = unchecked;
+
+if (total === 0) {
+    if (pctEl) pctEl.textContent = 'N/A';
+} else {
+    const pct = Math.round((verified / total) * 100);
+    if (pctEl) pctEl.textContent = pct + '%';
+
+    const verifiedLen = (verified / total) * circumference;
+    const tamperedLen = (tampered / total) * circumference;
+    const verifiedOffset = circumference - verifiedLen;
+    const tamperedOffset = circumference - tamperedLen;
+    const tamperedRotateOffset = (verified / total) * 360;
+
+    setTimeout(() => {
+        if (arcV) arcV.style.strokeDashoffset = verifiedOffset;
+        if (arcT && tampered > 0) {
+            arcT.style.strokeDashoffset = tamperedOffset;
+            arcT.style.transform = 'rotate(' + tamperedRotateOffset + 'deg)';
+            arcT.style.transformOrigin = '60px 60px';
+        }
+    }, 300);
+}
+
+// ── FILTER ROWS ──
+function filterRows(status, btn) {
+    // Update button styles
+    document.querySelectorAll('.filter-btn').forEach(b => {
+        b.className = 'filter-btn';
+    });
+    btn.classList.add('active-' + status);
+
+    const rows = document.querySelectorAll('#riskTable tbody tr');
+    let visible = 0;
+    rows.forEach(row => {
+        const rowStatus = row.dataset.status;
+        const show = status === 'all' || rowStatus === status;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+
+    const label = document.getElementById('rowCountLabel');
+    if (label) label.textContent = visible + ' record' + (visible !== 1 ? 's' : '');
+}
+
+// ── MINI TIMELINE STAGGER ANIMATION ──
+document.querySelectorAll('.mini-timeline').forEach((tl, idx) => {
+    const dots = tl.querySelectorAll('.mt-dot');
+    dots.forEach((dot, i) => {
+        dot.style.opacity = '0';
+        dot.style.transform = 'scale(0.3)';
+        dot.style.transition = `opacity 0.3s ${(idx * 0.05) + (i * 0.12)}s, transform 0.3s ${(idx * 0.05) + (i * 0.12)}s`;
+        setTimeout(() => {
+            dot.style.opacity = '1';
+            dot.style.transform = 'scale(1)';
+        }, 400 + idx * 50 + i * 100);
+    });
+});
+</script>
+
+</body>
+</html>
