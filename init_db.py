@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS retention_policies (
 conn.commit()
 conn.close()
 
-print("✅ Database initialized successfully")
+print("Database initialized successfully")
 
 
 # ---------------- SAFE COLUMN MIGRATION ----------------
@@ -78,16 +78,16 @@ cur = conn.cursor()
 # Add file_size if missing
 try:
     cur.execute("ALTER TABLE evidence ADD COLUMN file_size INTEGER")
-    print("✅ file_size column added")
+    print("file_size column added")
 except Exception as e:
-    print("⚠️ file_size may already exist:", e)
+    print("file_size may already exist:", e)
 
 # Add created_at if missing
 try:
     cur.execute("ALTER TABLE evidence ADD COLUMN created_at TEXT DEFAULT CURRENT_TIMESTAMP")
-    print("✅ created_at column added")
+    print("created_at column added")
 except Exception as e:
-    print("⚠️ created_at may already exist:", e)
+    print("created_at may already exist:", e)
 
 conn.commit()
 conn.close()
