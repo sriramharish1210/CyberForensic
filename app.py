@@ -116,10 +116,10 @@ def upload():
 
             print("FILE SAVED:", os.path.exists(filepath))
 
-            # ✅ NOW get size
+            # NOW get size
             file_size = os.path.getsize(filepath)
 
-            # ✅ Generate hash
+            # Generate hash
             file_hash = generate_file_hash(filepath)
 
         except Exception as e:
@@ -129,7 +129,7 @@ def upload():
         conn = get_db()
         cur = conn.cursor()
 
-        # ✅ FIXED SQL
+        # FIXED SQL
         cur.execute("""
             INSERT INTO evidence 
             (filename, file_hash, file_size, uploaded_by, upload_time, current_custodian, status)
